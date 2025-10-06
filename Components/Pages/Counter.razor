@@ -1,0 +1,153 @@
+﻿@page "/AddNew"
+@using FinalProjApp.Models
+@using FinalProjApp.Services
+@inject ICRUD<Child> ChildService
+@inject ICRUD<Guardian> GuardianService
+
+
+<h1>Add New Child</h1>
+
+ <div class="d-flex justify-content-between">
+    <div style="width: 50%;">
+
+@* <EditForm Model="@newChild" OnSubmit="@HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="form-group">
+        <label>First Name</label>
+        <InputText class="form-control" @bind-Value="newChild.FirstName" />
+                <ValidationMessage For="@(() => newChild.FirstName)" />
+    </div>
+
+    <div class="form-group">
+        <label>Last Name</label>
+        <InputText class="form-control" @bind-Value="newChild.LastName" />
+                <ValidationMessage For="@(() => newChild.LastName)" />
+    </div>
+
+    <div class="form-group">
+        <label>Date of Birth</label>
+        <InputDate class="form-control" @bind-Value="newChild.DateofBirth" />
+                <ValidationMessage For="@(() => newChild.DateofBirth)" />
+    </div>
+
+    <hr />
+    <h5>Guardian Information</h5>
+
+    <div class="form-group">
+        <label>Full Name</label>
+        <InputText class="form-control" @bind-Value="newGuardian.FullName" />
+                <ValidationMessage For="@(() => newGuardian.FullName)" />
+
+    </div>
+
+    <div class="form-group">
+        <label>Phone Number</label>
+        <InputNumber class="form-control" @bind-Value="newGuardian.PhoneNumber" />
+                <ValidationMessage For="@(() => newGuardian.PhoneNumber)" />
+    </div>
+
+    <div class="form-group">
+        <label>Address</label>
+        <InputText class="form-control" @bind-Value="newGuardian.Address" />
+                <ValidationMessage For="@(() => newGuardian.Address)" />
+
+    </div>
+
+    <button type="submit" class="btn btn-primary">Add Child</button>
+</EditForm>  *@
+
+    </div>
+    <div style="width: 45%;">
+        <h4>Existing Children</h4>
+        @if (children != null && children.Any())
+        {
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>First Name</th>
+                        <th>Last Name</th>
+                        <th>DOB</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var child in children)
+                    {
+                        <tr>
+                            <td>@child.FirstName</td>
+                            <td>@child.LastName</td>
+                            <td>@child.DateofBirth.ToShortDateString()</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p>No children found.</p>
+        }
+    </div>
+</div>
+
+@code {
+
+    private Child newChild = new();
+    private Guardian newGuardian = new();
+    private List<Child> children = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            children = await ChildService.GetList() ?? new List<Child>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading children: {ex.Message}");
+            children = new List<Child>(); // fallback to empty list
+        }
+
+
+    }
+
+
+    private async Task HandleValidSubmit()
+    {
+        Console.WriteLine("HandleValidSubmit triggered");
+        try
+        {
+            var ID = Guid.NewGuid();
+
+            var tempGuardian = new Guardian
+            {
+                FullName = newGuardian.FullName,
+                Address = newGuardian.Address,
+                PhoneNumber = newGuardian.PhoneNumber,
+                GuardianId = ID
+            };
+
+            var tempChild = new Child
+            {
+                FirstName = newChild.FirstName,
+                LastName = newChild.LastName,
+                DateofBirth = newChild.DateofBirth,
+                GuardianID = ID
+            };
+
+            await GuardianService.Add(tempGuardian);
+            await ChildService.Add(tempChild);
+            newChild = new(); // reset form
+            newGuardian = new(); // reset form
+            children = await ChildService.GetList() ?? new List<Child>();  // refresh grid
+            // Navigation.NavigateTo("/children");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+        
+    }
+
+
+} 
