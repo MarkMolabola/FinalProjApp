@@ -12,10 +12,11 @@ namespace FinalProjApp.Services
     public interface ICRUD<T>
     {
         Task Add(T person);
+        Task Update(Guid ID, T person);
         Task Update(int ID, T person);
         Task Delete(T person);
         Task<List<T>> GetList();
-        Task<T> GetbyID(int person);
+        Task<T> GetbyID(Guid person);
     }
     public class ChildCRUD : ICRUD<Child>
     {
@@ -45,6 +46,10 @@ namespace FinalProjApp.Services
                 await _dataContext.SaveChangesAsync();
             }
         }
+        public async Task Update(Guid Id, Child updatedChild)
+        {
+            throw new NotImplementedException();
+        }
 
         public async Task Delete(Child child)
         {
@@ -60,7 +65,7 @@ namespace FinalProjApp.Services
             return await _dataContext.children.ToListAsync();
         }
 
-        public async Task<Child> GetbyID(int ID)
+        public async Task<Child> GetbyID(Guid ID)
         {
             return await _dataContext.children.FindAsync(ID);
         }
@@ -81,7 +86,7 @@ namespace FinalProjApp.Services
             await _dataContext.SaveChangesAsync();
         }
 
-        public async Task Update(int Id, Guardian guardian)
+        public async Task Update(Guid Id, Guardian guardian)
         {
             var existingGuardian = await _dataContext.guardian.FindAsync(Id);
             if (existingGuardian != null)
@@ -93,7 +98,10 @@ namespace FinalProjApp.Services
                 await _dataContext.SaveChangesAsync();
             }
         }
-
+        public async Task Update(int Id, Guardian guardian)
+        {
+                       throw new NotImplementedException(); 
+        }
         public async Task Delete(Guardian guardian)
         {
             if (guardian != null)
@@ -108,7 +116,7 @@ namespace FinalProjApp.Services
             return await _dataContext.guardian.ToListAsync();
         }
 
-        public async Task<Guardian> GetbyID(int ID)
+        public async Task<Guardian> GetbyID(Guid ID)
         {
             return await _dataContext.guardian.FindAsync(ID);
         }

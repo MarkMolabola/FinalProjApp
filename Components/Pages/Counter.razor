@@ -8,9 +8,9 @@
 <h1>Add New Child</h1>
 
  <div class="d-flex justify-content-between">
-    <div style="width: 50%;">
+    <div style="width: 30%;">
 
-@* <EditForm Model="@newChild" OnSubmit="@HandleValidSubmit">
+ <EditForm Model="@newChild" OnSubmit="@HandleValidSubmit">
     <DataAnnotationsValidator />
     <ValidationSummary />
 
@@ -54,30 +54,49 @@
                 <ValidationMessage For="@(() => newGuardian.Address)" />
 
     </div>
+    
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary">Add / Update Child</button>
 
-    <button type="submit" class="btn btn-primary">Add Child</button>
-</EditForm>  *@
+                @if (selectedChild != null)
+                {
+                    <button type="button" class="btn btn-secondary" @onclick="ClearSelection">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="DeleteSelected">Delete</button>
+                }
+    </div>
+
+</EditForm>  
 
     </div>
-    <div style="width: 45%;">
+    <div style="width: 65%;">
         <h4>Existing Children</h4>
         @if (children != null && children.Any())
         {
             <table class="table table-striped">
                 <thead>
                     <tr>
+                        <th>ID</th>
                         <th>First Name</th>
                         <th>Last Name</th>
                         <th>DOB</th>
+                        <th>Guardian</th>
+                        <th>Phone Number</th>
+                        <th>Address</th>
+
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var child in children)
                     {
-                        <tr>
+                        var guardian =GuardianService.GetbyID(child.GuardianID);
+                        <tr @onclick="@(() => SelectChild(child))" style="cursor:pointer;">
+                            <td>@child.Id</td>
                             <td>@child.FirstName</td>
                             <td>@child.LastName</td>
                             <td>@child.DateofBirth.ToShortDateString()</td>
+                            <td>@child.Guardian.FullName</td>
+                            <td>@child.Guardian.PhoneNumber</td>
+                            <td>@child.Guardian.Address</td>
                         </tr>
                     }
                 </tbody>
@@ -91,11 +110,70 @@
 </div>
 
 @code {
-
-    private Child newChild = new();
+    private Child newChild = new()
+    {
+     DateofBirth = DateTime.Today
+    };
     private Guardian newGuardian = new();
     private List<Child> children = new();
 
+    private Child? selectedChild;
+    private Guardian? selectedGuardian;
+
+    private async void SelectChild(Child child)
+    {
+        selectedChild = child;
+        newChild = new Child
+        {
+            FirstName = child.FirstName,
+            LastName = child.LastName,
+            DateofBirth = child.DateofBirth,
+            GuardianID = child.GuardianID
+        };
+
+        selectedGuardian = await GuardianService.GetbyID(child.GuardianID);
+        if (selectedGuardian != null)
+        {
+            newGuardian = new Guardian
+            {
+                FullName = selectedGuardian.FullName,
+                Address = selectedGuardian.Address,
+                PhoneNumber = selectedGuardian.PhoneNumber,
+                GuardianId = selectedGuardian.GuardianId
+            };
+        }
+    }
+    private void ClearSelection()
+    {
+        selectedChild = null;
+        selectedGuardian = null;
+        newChild = new() { DateofBirth = DateTime.Today };
+        newGuardian = new();
+    }
+
+    private async Task DeleteSelected()
+    {
+        if (selectedChild != null)
+        {
+            try
+            {
+                var tempGuardian = await GuardianService.GetbyID(selectedChild.GuardianID);
+                await ChildService.Delete(selectedChild);
+                await GuardianService.Delete(tempGuardian);
+
+                selectedChild = null;
+                selectedGuardian = null;
+                newChild = new() { DateofBirth = DateTime.Today };
+                newGuardian = new();
+
+                children = await ChildService.GetList() ?? new List<Child>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error deleting child: {ex.Message}");
+            }
+        }
+    }
     protected override async Task OnInitializedAsync()
     {
         try
@@ -117,29 +195,58 @@
         Console.WriteLine("HandleValidSubmit triggered");
         try
         {
-            var ID = Guid.NewGuid();
-
-            var tempGuardian = new Guardian
+            if (selectedChild != null && selectedGuardian != null)
             {
-                FullName = newGuardian.FullName,
-                Address = newGuardian.Address,
-                PhoneNumber = newGuardian.PhoneNumber,
-                GuardianId = ID
-            };
 
-            var tempChild = new Child
+                selectedGuardian.FullName = newGuardian.FullName;
+                selectedGuardian.Address = newGuardian.Address;
+                selectedGuardian.PhoneNumber = newGuardian.PhoneNumber;
+
+                selectedChild.FirstName = newChild.FirstName;
+                selectedChild.LastName = newChild.LastName;
+                selectedChild.DateofBirth = newChild.DateofBirth;
+
+                selectedGuardian = await GuardianService.GetbyID(newChild.GuardianID);
+                await GuardianService.Update(selectedGuardian.GuardianId, selectedGuardian);
+                await ChildService.Update(selectedChild.Id, selectedChild);
+
+            }
+            else
             {
-                FirstName = newChild.FirstName,
-                LastName = newChild.LastName,
-                DateofBirth = newChild.DateofBirth,
-                GuardianID = ID
-            };
+                // Add new
+                var ID = Guid.NewGuid();
 
-            await GuardianService.Add(tempGuardian);
-            await ChildService.Add(tempChild);
-            newChild = new(); // reset form
+                var tempGuardian = new Guardian
+                {
+                    FullName = newGuardian.FullName,
+                    Address = newGuardian.Address,
+                    PhoneNumber = newGuardian.PhoneNumber,
+                    GuardianId = ID
+                };
+
+                var tempChild = new Child
+                {
+                    FirstName = newChild.FirstName,
+                    LastName = newChild.LastName,
+                    DateofBirth = newChild.DateofBirth,
+                    GuardianID = ID
+                };
+
+                await GuardianService.Add(tempGuardian);
+                await ChildService.Add(tempChild);
+            }
+
+
+
+            newChild = new() { DateofBirth = DateTime.Today }; // reset form
             newGuardian = new(); // reset form
+            selectedChild = null;
+            selectedGuardian = null;
+
+
             children = await ChildService.GetList() ?? new List<Child>();  // refresh grid
+            
+
             // Navigation.NavigateTo("/children");
         }
         catch (Exception ex)
