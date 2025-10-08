@@ -3,10 +3,21 @@
 @using FinalProjApp.Services
 @inject ICRUD<Child> ChildService
 @inject ICRUD<Guardian> GuardianService
-
-
 <h1>Add New Child</h1>
 
+
+<style>
+    .selected-row {
+        background-color: #e0f7fa !important;
+        box-shadow: 0 0 10px rgba(0, 200, 255, 0.6);
+        transition: box-shadow 0.3s ease;
+    }
+</style>
+<style>
+    tr:hover {
+        background-color: #f1f1f1;
+    }
+</style>
  <div class="d-flex justify-content-between">
     <div style="width: 30%;">
 
@@ -58,7 +69,7 @@
     <div class="d-flex gap-2 mt-3">
         <button type="submit" class="btn btn-primary">Add / Update Child</button>
 
-                @if (selectedChild != null)
+        @if (selectedChild != null)
                 {
                     <button type="button" class="btn btn-secondary" @onclick="ClearSelection">Cancel</button>
                     <button type="button" class="btn btn-danger" @onclick="DeleteSelected">Delete</button>
@@ -89,7 +100,10 @@
                     @foreach (var child in children)
                     {
                         var guardian =GuardianService.GetbyID(child.GuardianID);
-                        <tr @onclick="@(() => SelectChild(child))" style="cursor:pointer;">
+                        <tr @onclick="@(() => SelectChild(child))"
+                            class="@(selectedChild?.Id == child.Id ? "selected-row" : "")"
+                            style="cursor:pointer;">
+
                             <td>@child.Id</td>
                             <td>@child.FirstName</td>
                             <td>@child.LastName</td>

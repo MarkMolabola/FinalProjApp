@@ -1,0 +1,41 @@
+﻿@page "/Calendar"
+@using Syncfusion.Blazor
+
+
+@using Syncfusion.Blazor.Schedule
+<h3>Calendar</h3>
+
+<div class="container-fluid p-3 bg-light rounded shadow">
+    <SfSchedule TValue="ScheduleEvent" Height="auto" Width="100%" >
+        <ScheduleViews>
+            <ScheduleView Option="View.Month"></ScheduleView>
+            <ScheduleView Option="View.Week"></ScheduleView>
+            <ScheduleView Option="View.Day"></ScheduleView>
+        </ScheduleViews>
+        <ScheduleEventSettings TValue="ScheduleEvent" DataSource="@Events" />
+    </SfSchedule>
+</div>
+
+
+@code {
+    public class ScheduleEvent {
+        public string Subject { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
+    }
+
+    List<ScheduleEvent> Events = new() {
+        new ScheduleEvent {
+            Subject = "Liam - Nap Time",
+            StartTime = DateTime.Today.AddHours(12),
+            EndTime = DateTime.Today.AddHours(13)
+        },
+        new ScheduleEvent {
+            Subject = "Emma - Art Class",
+            StartTime = DateTime.Today.AddHours(10),
+            EndTime = DateTime.Today.AddHours(11)
+        }
+    };
+}
+
+

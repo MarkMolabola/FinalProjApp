@@ -4,6 +4,7 @@ using FinalProjApp.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
+using Syncfusion.Blazor;
 using static System.Formats.Asn1.AsnWriter;
 
 namespace FinalProjApp
@@ -13,6 +14,8 @@ namespace FinalProjApp
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();
+
+            
             builder
 
                 .UseMauiApp<App>()
@@ -24,8 +27,10 @@ namespace FinalProjApp
             builder.Services.AddMauiBlazorWebView();
 
 #if DEBUG
-            builder.Services.AddMudServices();
+            Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Ngo9BigBOggjHTQxAR8/V1JFaF5cXGRCf1NpRGZGfV5ycUVDallXTnddUj0eQnxTdEBiWX9WcXNQQGFeVE13VkleYg==");
+           // builder.Services.AddMudServices();
             builder.Services.AddBlazorWebViewDeveloperTools();
+            builder.Services.AddSyncfusionBlazor();
             builder.Services.AddScoped<ICRUD<Child>, ChildCRUD>();
             builder.Services.AddScoped<ICRUD<Guardian>, GuardianCRUD>();
           

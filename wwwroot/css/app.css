@@ -84,3 +84,7 @@ h1:focus {
         padding-left: env(safe-area-inset-left);
     }
 }
+body {
+    background: linear-gradient(to bottom right, #fce4ec, #e3f2fd); /* pink to baby blue */
+}
+

@@ -64,6 +64,7 @@
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="$(MauiVersion)" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
         <PackageReference Include="MudBlazor" Version="8.13.0" />
+        <PackageReference Include="Syncfusion.Blazor" Version="31.1.23" />
     </ItemGroup>
 
 </Project>
