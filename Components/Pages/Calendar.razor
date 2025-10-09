@@ -1,13 +1,18 @@
 ﻿@page "/Calendar"
+@using FinalProjApp.Models
+@using FinalProjApp.Services
 @using Syncfusion.Blazor
-
-
 @using Syncfusion.Blazor.Schedule
+
+@inject ICRUD<ScheduleEvent> EventService
 <h3>Calendar</h3>
 
+
+
 <div class="container-fluid p-3 bg-light rounded shadow">
-    <SfSchedule TValue="ScheduleEvent" Height="auto" Width="100%" >
+    <SfSchedule TValue="ScheduleEvent" SelectedDate="@DateTime.Today" Height="auto" Width="100%" >
         <ScheduleViews>
+
             <ScheduleView Option="View.Month"></ScheduleView>
             <ScheduleView Option="View.Week"></ScheduleView>
             <ScheduleView Option="View.Day"></ScheduleView>
@@ -17,25 +22,70 @@
 </div>
 
 
-@code {
-    public class ScheduleEvent {
-        public string Subject { get; set; }
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
+@code
+{
+    private ScheduleEvent scheduleEvent = new ();
+    // public int Id { get; set; }
+    // public string Subject { get; set; }
+    // public string Location { get; set; }
+    // public string Description { get; set; }
+    // public DateTime StartTime { get; set; }
+    // public DateTime EndTime { get; set; }
+    // public bool IsAllDay { get; set; }
+    List<ScheduleEvent> Events = new();
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Events = await EventService.GetList() ?? new List<ScheduleEvent>();
+           
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading events: {ex.Message}");
+            Events = new List<ScheduleEvent>(); 
+
+        }
+
     }
 
-    List<ScheduleEvent> Events = new() {
-        new ScheduleEvent {
-            Subject = "Liam - Nap Time",
-            StartTime = DateTime.Today.AddHours(12),
-            EndTime = DateTime.Today.AddHours(13)
-        },
-        new ScheduleEvent {
-            Subject = "Emma - Art Class",
-            StartTime = DateTime.Today.AddHours(10),
-            EndTime = DateTime.Today.AddHours(11)
+    private async Task HandleCellClick(CellClickEventArgs args)
+    {
+        try
+        {
+            Console.WriteLine("Cell clicked at: " + args.StartTime);
+
+            var newEvent = new ScheduleEvent
+            {
+                Subject = "New Event",
+                StartTime = args.StartTime,
+                EndTime = args.StartTime.AddHours(1),
+                Description = "Created from calendar click"
+            };
+
+            Console.WriteLine("Creating event...");
+            await EventService.Add(newEvent);
+            Console.WriteLine("Event created.");
+
+            Events = await EventService.GetList() ?? new List<ScheduleEvent>();
+            Console.WriteLine("Events loaded: " + Events.Count);
+
+            StateHasChanged();
         }
-    };
+        catch (Exception ex)
+        {
+            Console.WriteLine("Runtime error: " + ex.Message);
+            Console.WriteLine("Stack trace: " + ex.StackTrace);
+        }
+    }
 }
+
+    
+
+
+
 
 

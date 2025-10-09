@@ -101,10 +101,10 @@
                     {
                         var guardian =GuardianService.GetbyID(child.GuardianID);
                         <tr @onclick="@(() => SelectChild(child))"
-                            class="@(selectedChild?.Id == child.Id ? "selected-row" : "")"
+                            class="@(selectedChild?.ChildId == child.ChildId ? "selected-row" : "")"
                             style="cursor:pointer;">
 
-                            <td>@child.Id</td>
+                            <td>@child.ChildId</td>
                             <td>@child.FirstName</td>
                             <td>@child.LastName</td>
                             <td>@child.DateofBirth.ToShortDateString()</td>
@@ -209,6 +209,7 @@
         Console.WriteLine("HandleValidSubmit triggered");
         try
         {
+            //update existing
             if (selectedChild != null && selectedGuardian != null)
             {
 
@@ -222,14 +223,13 @@
 
                 selectedGuardian = await GuardianService.GetbyID(newChild.GuardianID);
                 await GuardianService.Update(selectedGuardian.GuardianId, selectedGuardian);
-                await ChildService.Update(selectedChild.Id, selectedChild);
+                await ChildService.Update(selectedChild.ChildId, selectedChild);
 
             }
             else
             {
                 // Add new
                 var ID = Guid.NewGuid();
-
                 var tempGuardian = new Guardian
                 {
                     FullName = newGuardian.FullName,

@@ -22,7 +22,7 @@
         <Nullable>enable</Nullable>
 
         <!-- Display name -->
-        <ApplicationTitle>FinalProjApp</ApplicationTitle>
+        <ApplicationTitle>CalyBear</ApplicationTitle>
 
         <!-- App Identifier -->
         <ApplicationId>com.companyname.finalprojapp</ApplicationId>
@@ -65,6 +65,7 @@
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
         <PackageReference Include="MudBlazor" Version="8.13.0" />
         <PackageReference Include="Syncfusion.Blazor" Version="31.1.23" />
+        
     </ItemGroup>
 
 </Project>

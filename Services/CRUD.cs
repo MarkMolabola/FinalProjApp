@@ -18,6 +18,54 @@ namespace FinalProjApp.Services
         Task<List<T>> GetList();
         Task<T> GetbyID(Guid person);
     }
+    public class ScheduleEventCRUD : ICRUD<ScheduleEvent>
+    {
+        private DataContext _dataContext;
+        public ScheduleEventCRUD(DataContext dataContext)
+        {
+            _dataContext = dataContext;
+        }
+        public async Task Add(ScheduleEvent scheduleEvent)
+        {
+            await _dataContext.scheduleEvents.AddAsync(scheduleEvent);
+            await _dataContext.SaveChangesAsync();
+        }
+        public async Task Update(Guid Id, ScheduleEvent updatedEvent)
+        {
+            throw new NotImplementedException();
+        }
+        public async Task Update(int Id, ScheduleEvent updatedEvent)
+        {
+            var existingEvent = await _dataContext.scheduleEvents.FindAsync(Id);
+            if (existingEvent != null)
+            {
+                existingEvent.Subject = updatedEvent.Subject;
+                existingEvent.StartTime = updatedEvent.StartTime;
+                existingEvent.EndTime = updatedEvent.EndTime;
+                existingEvent.Description = updatedEvent.Description;
+                existingEvent.Location = updatedEvent.Location;
+                existingEvent.IsAllDay = updatedEvent.IsAllDay;
+
+                await _dataContext.SaveChangesAsync();
+            }
+        }
+        public async Task Delete(ScheduleEvent scheduleEvent)
+        {
+            if (scheduleEvent != null)
+            {
+                _dataContext.scheduleEvents.Remove(scheduleEvent);
+                await _dataContext.SaveChangesAsync();
+            }
+        }
+        public async Task<List<ScheduleEvent>> GetList()
+        {
+            return await _dataContext.scheduleEvents.ToListAsync();
+        }
+        public async Task<ScheduleEvent> GetbyID(Guid ID)
+        {
+            throw new NotImplementedException();
+        }
+    }
     public class ChildCRUD : ICRUD<Child>
     {
         private DataContext _dataContext;
