@@ -34,14 +34,12 @@
     // public bool IsAllDay { get; set; }
     List<ScheduleEvent> Events = new();
 
-
-
     protected override async Task OnInitializedAsync()
     {
         try
         {
             Events = await EventService.GetList() ?? new List<ScheduleEvent>();
-           
+
         }
         catch (Exception ex)
         {
@@ -52,18 +50,21 @@
 
     }
 
-    private async Task HandleCellClick(CellClickEventArgs args)
+    private async Task HandleCellClick(Syncfusion.Blazor.Schedule.CellClickEventArgs args)
     {
+        
         try
         {
-            Console.WriteLine("Cell clicked at: " + args.StartTime);
+            Console.WriteLine("Cell clicked");
 
             var newEvent = new ScheduleEvent
             {
-                Subject = "New Event",
+                Subject = "DaycareTime",
                 StartTime = args.StartTime,
                 EndTime = args.StartTime.AddHours(1),
-                Description = "Created from calendar click"
+                Description = "Nap Time",
+                Location = "Home",
+                ChildId = 2
             };
 
             Console.WriteLine("Creating event...");

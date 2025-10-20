@@ -1,0 +1,172 @@
+﻿@page "/AddSchedule"
+@using FinalProjApp.Models
+@using FinalProjApp.Services
+@inject ICRUD<Child> ChildService
+@inject ICRUD<ScheduleEvent> EventService
+
+<h3>Add New Schedule Event</h3>
+<div class="d-flex justify-content-between">
+    <div style="width: 40%;">
+        <!-- Your existing EditForm goes here -->
+        <EditForm Model="@newEvent" OnValidSubmit="@HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="form-group">
+                <label>Select Child</label>
+                <InputSelect class="form-control" @bind-Value="newEvent.ChildId" TValue="int">
+                    <option value="">-- Choose Child --</option>
+                    @foreach (var child in children)
+                    {
+                        <option value="@child.ChildId">@child.LastName, @child.FirstName</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => newEvent.ChildId)" />
+            </div>
+            <div class="form-group">
+                <label>Subject</label>
+                <InputText class="form-control" @bind-Value="newEvent.Subject" />
+                <ValidationMessage For="@(() => newEvent.Subject)" />
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <InputText class="form-control" @bind-Value="newEvent.Description" />
+                <ValidationMessage For="@(() => newEvent.Description)" />
+            </div>
+
+            <div class="form-group">
+                <label>Location</label>
+                <InputText class="form-control" @bind-Value="newEvent.Location" />
+            </div>
+
+            <div class="form-group">
+                <label>Start Time</label>
+                <InputDate class="form-control" @bind-Value="newEvent.StartTime" />
+            </div>
+
+            <div class="form-group">
+                <label>End Time</label>
+                <InputDate class="form-control" @bind-Value="newEvent.EndTime" />
+            </div>
+
+            <div class="form-check">
+                <InputCheckbox class="form-check-input" @bind-Value="newEvent.IsAllDay" />
+                <label class="form-check-label">All Day Event</label>
+            </div>
+
+            <button type="submit" class="btn btn-success mt-3">Add Schedule</button>
+        </EditForm>
+    </div>
+
+    <div style="width: 58%;">
+        <h4>Existing Events</h4>
+        @if (events != null && events.Any())
+        {
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Child</th>
+                        <th>Subject</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Location</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ev in events)
+                    {
+                        var child = children.FirstOrDefault(c => c.ChildId == ev.ChildId);
+                        <tr @onclick="@(() => SelectEvent(ev))" style="cursor:pointer;">
+                            <td>@(child?.LastName ?? "Unknown")</td>
+                            <td>@ev.Subject</td>
+                            <td>@ev.StartTime.ToShortTimeString()</td>
+                            <td>@ev.EndTime.ToShortTimeString()</td>
+                            <td>@ev.Location</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p>No events found.</p>
+        }
+
+        @if (selectedEvent != null)
+        {
+            <button class="btn btn-danger mt-2" @onclick="DeleteSelected">Delete Selected</button>
+            <button class="btn btn-secondary mt-2 ms-2" @onclick="ClearSelection">Cancel</button>
+        }
+    </div>
+</div>
+@code {
+    private ScheduleEvent newEvent = new();
+    private List<Child> children = new();
+    private List<ScheduleEvent> events = new();
+    private ScheduleEvent? selectedEvent;
+
+    protected override async Task OnInitializedAsync()
+    {
+        children = await ChildService.GetList() ?? new List<Child>();
+        events = await EventService.GetList() ?? new List<ScheduleEvent>();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            if (selectedEvent != null)
+            {
+                await EventService.Update(newEvent.Id, newEvent);
+            }
+            else
+            {
+                await EventService.Add(newEvent);
+            }
+
+            newEvent = new();
+            selectedEvent = null;
+            events = await EventService.GetList() ?? new List<ScheduleEvent>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving event: {ex.Message}");
+        }
+    }
+
+    private void SelectEvent(ScheduleEvent ev)
+    {
+        selectedEvent = ev;
+        newEvent = new ScheduleEvent
+        {
+            Id = ev.Id,
+            ChildId = ev.ChildId,
+            Subject = ev.Subject,
+            Description = ev.Description,
+            Location = ev.Location,
+            StartTime = ev.StartTime,
+            EndTime = ev.EndTime,
+            IsAllDay = ev.IsAllDay
+        };
+    }
+
+    private void ClearSelection()
+    {
+        selectedEvent = null;
+        newEvent = new();
+    }
+
+    private async Task DeleteSelected()
+    {
+        if (selectedEvent != null)
+        {
+            await EventService.Delete(selectedEvent);
+            selectedEvent = null;
+            newEvent = new();
+            events = await EventService.GetList() ?? new List<ScheduleEvent>();
+        }
+    }
+
+
+}

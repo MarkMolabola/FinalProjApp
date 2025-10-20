@@ -28,7 +28,7 @@ namespace FinalProjApp
             builder.Services.AddMauiBlazorWebView();
 
 #if DEBUG
-            Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Ngo9BigBOggjHTQxAR8/V1JFaF5cXGRCf1NpRGZGfV5ycUVDallXTnddUj0eQnxTdEBiWX9WcXNQQGFeVE13VkleYg==");
+            Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Ngo9BigBOggjHTQxAR8/V1JFaF5cXGRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWH9ccHVSR2ZcVEd/WktWYEg=");
            // builder.Services.AddMudServices();
             builder.Services.AddBlazorWebViewDeveloperTools();
             builder.Services.AddSyncfusionBlazor();
