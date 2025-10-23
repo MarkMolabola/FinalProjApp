@@ -67,7 +67,7 @@
                 <thead>
                     <tr>
                         <th>Child</th>
-                        <th>Date</th>
+                        <th>Subject</th>
                         <th>Start</th>
                         <th>End</th>
                         <th>Location</th>
@@ -79,7 +79,7 @@
                         var child = children.FirstOrDefault(c => c.ChildId == ev.ChildId);
                         <tr @onclick="@(() => SelectEvent(ev))" style="cursor:pointer;">
                             <td>@(child?.LastName ?? "Unknown")</td>
-                            <td>@ev.StartTime.ToShortDateString()</td>
+                            <td>@ev.Subject</td>
                             <td>@ev.StartTime.ToShortTimeString()</td>
                             <td>@ev.EndTime.ToShortTimeString()</td>
                             <td>@ev.Location</td>
