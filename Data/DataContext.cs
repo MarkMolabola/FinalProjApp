@@ -15,6 +15,7 @@ namespace FinalProjApp.Data
         public DbSet<Child> children { get; set; }
         public DbSet<Guardian> guardian { get; set; }
         public DbSet<ScheduleEvent> scheduleEvents { get; set; }
+        
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

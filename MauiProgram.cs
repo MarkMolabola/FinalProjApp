@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using MudBlazor.Services;
 using Syncfusion.Blazor;
 using Syncfusion.Blazor.Schedule;
+using XCalendar.Maui;
 using static System.Formats.Asn1.AsnWriter;
 
 namespace FinalProjApp
@@ -24,7 +25,7 @@ namespace FinalProjApp
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 });
-            builder.Services.AddMudServices();
+            //builder.Services.AddMudServices();
             builder.Services.AddMauiBlazorWebView();
 
 #if DEBUG

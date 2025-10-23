@@ -1,0 +1,34 @@
+﻿@page "/photos"
+@inject IJSRuntime JS
+
+<h3>Upload Photos</h3>
+
+<InputFile OnChange="HandleFileUpload" multiple />
+
+@if (ImageUrls.Any())
+{
+    <div class="photo-grid">
+        @foreach (var url in ImageUrls)
+        {
+            <img src="@url" class="photo-item" />
+        }
+    </div>
+}
+
+@code {
+    private List<string> ImageUrls = new();
+
+    private async Task HandleFileUpload(InputFileChangeEventArgs e)
+    {
+        foreach (var file in e.GetMultipleFiles())
+        {
+            var buffer = new byte[file.Size];
+            await file.OpenReadStream().ReadAsync(buffer);
+
+            // Convert to base64 for display
+            var base64 = Convert.ToBase64String(buffer);
+            var imageUrl = $"data:{file.ContentType};base64,{base64}";
+            ImageUrls.Add(imageUrl);
+        }
+    }
+}
