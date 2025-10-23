@@ -1,0 +1,49 @@
+﻿@page "/crew"
+<h1>Meet the Crew</h1>
+
+<div class="crew-grid">
+    @foreach (var member in CrewMembers)
+    {
+        <div class="crew-card">
+            <img src="@member.PhotoUrl" alt="@member.Name" class="crew-photo" />
+            <h3>@member.Name</h3>
+            <p>@member.Role</p>
+            <p>@member.Bio</p>
+        </div>
+    }
+</div>
+
+@code {
+    private List<CrewMember> CrewMembers = new()
+    {
+        new CrewMember
+        {
+            Name = "Thor Martinez",
+            Role = "Lead Educator",
+            Bio = "Thor brings 10 years of early childhood experience and a passion for creative learning.",
+            PhotoUrl = "Images/crew/thor.jpg"
+        },
+        new CrewMember
+        {
+            Name = "Widow Chen",
+            Role = "Activity Coordinator",
+            Bio = "Widow designs engaging activities that blend fun with developmental milestones.",
+            PhotoUrl = "Images/crew/widow.jpg"
+        },
+        new CrewMember
+        {
+            Name = "Maui Johnson",
+            Role = "Nutrition Specialist",
+            Bio = "Maui ensures every child gets balanced meals and snack options tailored to their needs.",
+            PhotoUrl = "Images/crew/Maui.jpg"
+        }
+    };
+
+    public class CrewMember
+    {
+        public string Name { get; set; } = "";
+        public string Role { get; set; } = "";
+        public string Bio { get; set; } = "";
+        public string PhotoUrl { get; set; } = "";
+    }
+}

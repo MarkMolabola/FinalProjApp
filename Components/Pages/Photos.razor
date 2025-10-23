@@ -1,5 +1,9 @@
 ﻿@page "/photos"
+@using Microsoft.EntityFrameworkCore
 @inject IJSRuntime JS
+@using FinalProjApp.Data
+@using FinalProjApp.Models
+@inject PhotoContext Db
 
 <h3>Upload Photos</h3>
 
@@ -18,6 +22,15 @@
 @code {
     private List<string> ImageUrls = new();
 
+    protected override async Task OnInitializedAsync()
+    {
+        var photos = await Db.Photos.ToListAsync();
+
+        ImageUrls = photos.Select(p =>
+            $"data:{p.ContentType};base64,{Convert.ToBase64String(p.Data)}"
+        ).ToList();
+    }
+
     private async Task HandleFileUpload(InputFileChangeEventArgs e)
     {
         foreach (var file in e.GetMultipleFiles())
@@ -25,7 +38,16 @@
             var buffer = new byte[file.Size];
             await file.OpenReadStream().ReadAsync(buffer);
 
-            // Convert to base64 for display
+            var photo = new Photo
+            {
+                FileName = file.Name,
+                ContentType = file.ContentType,
+                Data = buffer
+            };
+
+            Db.Photos.Add(photo);
+            await Db.SaveChangesAsync();
+
             var base64 = Convert.ToBase64String(buffer);
             var imageUrl = $"data:{file.ContentType};base64,{base64}";
             ImageUrls.Add(imageUrl);

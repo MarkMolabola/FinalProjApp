@@ -1,0 +1,59 @@
+﻿@page "/contact"
+@using System.ComponentModel.DataAnnotations
+@using FinalProjApp.Models
+<h1>Contact Us</h1>
+
+<EditForm Model="@contactForm" OnValidSubmit="HandleSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="form-group">
+        <label>Name</label>
+        <InputText class="form-control" @bind-Value="contactForm.Name" />
+        <ValidationMessage For="@(() => contactForm.Name)" />
+    </div>
+
+    <div class="form-group">
+        <label>Email</label>
+        <InputText class="form-control" @bind-Value="contactForm.Email" />
+        <ValidationMessage For="@(() => contactForm.Email)" />
+    </div>
+
+    <div class="form-group">
+        <label>Message</label>
+        <InputTextArea class="form-control" @bind-Value="contactForm.Message" rows="5" />
+        <ValidationMessage For="@(() => contactForm.Message)" />
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-3">Send Message</button>
+</EditForm>
+<hr />
+<h5>Reach Us Directly</h5>
+
+<div class="contact-info">
+    <p><span class="bi bi-envelope-fill"></span> Email: <a href="mailto:info@daycaredemo.com">info@daycaredemo.com</a></p>
+    <p><span class="bi bi-telephone-fill"></span> Phone 1: <a href="tel:+15551234567">(555) 123-4567</a></p>
+    <p><span class="bi bi-telephone-fill"></span> Phone 2: <a href="tel:+15557654321">(555) 765-4321</a></p>
+    <p><span class="bi bi-geo-alt-fill"></span> Address: 123 Sunshine Lane, Long Beach, CA 90802</p>
+</div>
+
+@if (submitted)
+{
+    <div class="alert alert-success mt-3">
+        Thank you! We'll get back to you soon.
+    </div>
+}
+
+@code {
+    private ContactForm contactForm = new();
+    private bool submitted = false;
+
+    private void HandleSubmit()
+    {
+        submitted = true;
+        Console.WriteLine($"Name: {contactForm.Name}, Email: {contactForm.Email}, Message: {contactForm.Message}");
+        // You can later save to DB or send via email
+    }
+
+   
+}

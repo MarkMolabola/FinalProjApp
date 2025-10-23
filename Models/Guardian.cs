@@ -16,7 +16,7 @@ namespace FinalProjApp.Models
         [Required]
         public string FullName { get; set; }
         [Required]
-        public int PhoneNumber { get; set; }
+        public int PhoneNumber { get; set; } //change to string in the future 
         [Required]
         public string Address { get; set; }
 

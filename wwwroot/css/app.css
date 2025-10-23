@@ -146,3 +146,48 @@ body {
         color: #ff6f61;
         margin-bottom: 10px;
     }
+
+.photo-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* 3 columns */
+    gap: 20px;
+    margin-top: 20px;
+    padding: 10px;
+}
+
+.photo-item {
+    width: 100%;
+    height: auto;
+    max-height: 300px; /* Optional: limit height */
+    object-fit: cover;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease;
+}
+
+    .photo-item:hover {
+        transform: scale(1.03);
+    }
+
+.crew-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.crew-card {
+    background-color: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.crew-photo {
+    width: 100%;
+    max-width: 180px;
+    height: auto;
+    border-radius: 50%;
+    margin-bottom: 12px;
+}

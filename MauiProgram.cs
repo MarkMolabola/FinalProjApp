@@ -36,6 +36,11 @@ namespace FinalProjApp
             builder.Services.AddScoped<ICRUD<Child>, ChildCRUD>();
             builder.Services.AddScoped<ICRUD<Guardian>, GuardianCRUD>();
             builder.Services.AddScoped<ICRUD<ScheduleEvent>, ScheduleEventCRUD>();
+            builder.Services.AddDbContext<Data.PhotoContext>(options =>
+            {
+                options.UseSqlite("Data Source=C:\\DATA\\Photos.db");
+
+            });
 
             builder.Services.AddDbContext<Data.DataContext>(options =>
             {
@@ -47,6 +52,9 @@ namespace FinalProjApp
                 var dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
                 
                 dbContext.Database.EnsureCreated();
+                var photodbContext = scope.ServiceProvider.GetRequiredService<PhotoContext>();
+
+                photodbContext.Database.EnsureCreated();
             }
 
             builder.Logging.AddDebug();
