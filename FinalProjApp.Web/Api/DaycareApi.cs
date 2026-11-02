@@ -33,6 +33,76 @@ namespace FinalProjApp.Web.Api
             MapGuardians(api.MapGroup("/guardians").RequireAuthorization(StaffOnly));
             MapEvents(api.MapGroup("/events"));
             MapPhotos(api.MapGroup("/photos"));
+            MapFamily(api.MapGroup("/family").RequireAuthorization(StaffOnly));
+            MapInvites(api.MapGroup("/invites"));
+        }
+
+        // ── Kids page: kids + guardians + invites (staff only) ───────────────
+
+        private static void MapFamily(RouteGroupBuilder family)
+        {
+            family.MapGet("/", (IFamilyService f) => f.GetAllAsync());
+
+            family.MapPost("/kids", async (NewKidRequest body, IFamilyService f) =>
+                Results.Ok(await f.AddKidAsync(body.Kid, body.Guardian)));
+
+            family.MapPut("/kids/{id:int}", async (int id, Child kid, IFamilyService f) =>
+            {
+                kid.ChildId = id;
+                await f.UpdateKidAsync(kid);
+                return Results.NoContent();
+            });
+
+            family.MapDelete("/kids/{id:int}", async (int id, IFamilyService f) =>
+            {
+                await f.DeleteKidAsync(id);
+                return Results.NoContent();
+            });
+
+            family.MapPost("/kids/{id:int}/guardians", async (int id, Guardian guardian, IFamilyService f) =>
+                Results.Ok(await f.AddGuardianAsync(id, guardian)));
+
+            family.MapDelete("/kids/{id:int}/guardians/{guardianId:guid}", async (int id, Guid guardianId, IFamilyService f) =>
+            {
+                try
+                {
+                    await f.RemoveGuardianAsync(id, guardianId);
+                    return Results.NoContent();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return Results.Conflict(ex.Message);
+                }
+            });
+
+            family.MapPut("/guardians/{id:guid}", async (Guid id, Guardian guardian, IFamilyService f) =>
+            {
+                guardian.GuardianId = id;
+                try
+                {
+                    await f.UpdateGuardianAsync(guardian);
+                    return Results.NoContent();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return Results.Conflict(ex.Message);
+                }
+            });
+
+            family.MapPost("/guardians/{id:guid}/invite", (Guid id, IInviteService invites) => invites.SendAsync(id));
+        }
+
+        // ── Invite links (no sign-in: the code in the link is the key) ───────
+
+        private static void MapInvites(RouteGroupBuilder invites)
+        {
+            invites.MapGet("/{code}", async (string code, IInviteService service) =>
+                await service.GetAsync(code) is { } details ? Results.Ok(details) : Results.NotFound());
+
+            invites.MapPost("/{code}/accept", async (string code, AcceptInviteRequest body, IInviteService service) =>
+                await service.AcceptAsync(code, body.Password) is { } error
+                    ? Results.BadRequest(error)
+                    : Results.NoContent());
         }
 
         // ── Kids ─────────────────────────────────────────────────────────────
@@ -153,11 +223,14 @@ namespace FinalProjApp.Web.Api
             }).RequireAuthorization(StaffOnly);
         }
 
-        // ── Photos (anyone signed in can look; only admins add) ──────────────
+        // ── Photos: public Showcase for guests, Families for signed-in users ─
 
         private static void MapPhotos(RouteGroupBuilder photos)
         {
-            photos.MapGet("/", async (IPhotoService service) => await service.GetAllAsync())
+            // Anyone, signed in or not, can see the Showcase the admin picked
+            photos.MapGet("/showcase", (IPhotoService service) => service.GetAsync(publicAlbum: true));
+
+            photos.MapGet("/families", (IPhotoService service) => service.GetAsync(publicAlbum: false))
                 .RequireAuthorization(SignedIn);
 
             photos.MapPost("/", async (Photo photo, IPhotoService service) =>
@@ -167,8 +240,20 @@ namespace FinalProjApp.Web.Api
                 if (!photo.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
                     return Results.BadRequest("Only images can be uploaded.");
 
-                var saved = await service.AddAsync(photo.FileName, photo.ContentType, photo.Data);
+                var saved = await service.AddAsync(photo.FileName, photo.ContentType, photo.Data, photo.IsPublic);
                 return Results.Created($"/api/photos/{saved.Id}", saved);
+            }).RequireAuthorization(AdminOnly);
+
+            photos.MapPut("/{id:int}/album", async (int id, bool isPublic, IPhotoService service) =>
+            {
+                await service.MoveAsync(id, isPublic);
+                return Results.NoContent();
+            }).RequireAuthorization(AdminOnly);
+
+            photos.MapDelete("/{id:int}", async (int id, IPhotoService service) =>
+            {
+                await service.DeleteAsync(id);
+                return Results.NoContent();
             }).RequireAuthorization(AdminOnly);
         }
 
@@ -176,12 +261,14 @@ namespace FinalProjApp.Web.Api
 
         private static bool IsStaff(ClaimsPrincipal user) => user.IsInRole("Admin") || user.IsInRole("Staff");
 
-        /// <summary>Staff see every kid; a parent sees only the kids linked to their guardian record.</summary>
+        /// <summary>Staff see every kid; a parent sees only the kids linked to them.</summary>
         private static IQueryable<Child> VisibleChildren(ClaimsPrincipal user, DataContext db)
         {
             if (IsStaff(user)) return db.children;
             var guardianId = user.ToAppUser()?.GuardianId;
-            return guardianId is { } id ? db.children.Where(c => c.GuardianID == id) : db.children.Where(_ => false);
+            return guardianId is { } id
+                ? db.children.Where(c => db.ChildGuardians.Any(l => l.GuardianId == id && l.ChildId == c.ChildId))
+                : db.children.Where(_ => false);
         }
     }
 }

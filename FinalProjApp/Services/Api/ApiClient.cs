@@ -41,6 +41,10 @@ namespace FinalProjApp.Services.Api
             (await _http.SendAsync(new HttpRequestMessage(method, path) { Content = JsonContent.Create(body) }))
                 .EnsureSuccessStatusCode();
 
+        /// <summary>Sends a request and hands back the reply as-is, for callers that read error replies.</summary>
+        public Task<HttpResponseMessage> SendRawAsync(HttpMethod method, string path, object? body) =>
+            _http.SendAsync(new HttpRequestMessage(method, path) { Content = body == null ? null : JsonContent.Create(body) });
+
         public async Task DeleteAsync(string path) =>
             (await _http.DeleteAsync(path)).EnsureSuccessStatusCode();
     }

@@ -1,0 +1,116 @@
+@page "/register"
+@layout Layout.LoginLayout
+@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+@inject IInviteService Invites
+@inject IAuthService Auth
+
+@* Where an invite email lands: the parent picks a password; their email comes from the invite *@
+
+<div class="login-card">
+    <div class="login-header">
+        <div class="brand-mark">🧸</div>
+        <h2>Welcome to Caly Bear</h2>
+        @if (_invite != null)
+        {
+            <p>Set a password to see @KidsText()'s day.</p>
+        }
+    </div>
+
+    @if (_loading)
+    {
+        <div class="empty-state py-3">Checking your invite…</div>
+    }
+    else if (_invite == null)
+    {
+        <div class="alert alert-danger">
+            This invite link has expired or was already used. Ask the daycare to send you a new one.
+        </div>
+        <NavLink href="/login" class="btn btn-secondary w-100">I already have an account</NavLink>
+    }
+    else
+    {
+        <EditForm Model="@_form" OnValidSubmit="CreateAccount">
+            <DataAnnotationsValidator />
+
+            @if (_error != null)
+            {
+                <div class="alert alert-danger d-flex align-items-center gap-2">
+                    <i class="bi bi-emoji-frown-fill"></i>@_error
+                </div>
+            }
+
+            <div class="form-group">
+                <label>Email</label>
+                <input class="form-control" value="@_invite.Email" readonly />
+            </div>
+
+            <div class="form-group">
+                <label>Password</label>
+                <InputText @bind-Value="_form.Password" class="form-control" type="password" placeholder="At least 8 characters" />
+                <ValidationMessage For="@(() => _form.Password)" />
+            </div>
+
+            <div class="form-group">
+                <label>Confirm password</label>
+                <InputText @bind-Value="_form.Confirm" class="form-control" type="password" placeholder="Type it again" />
+                <ValidationMessage For="@(() => _form.Confirm)" />
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 mt-2" disabled="@_saving">
+                @if (_saving)
+                {
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                }
+                Create my account
+            </button>
+        </EditForm>
+    }
+</div>
+
+@code {
+    [SupplyParameterFromQuery(Name = "code")] public string? Code { get; set; }
+
+    private InviteDetails? _invite;
+    private PasswordForm _form = new();
+    private bool _loading = true, _saving;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _invite = string.IsNullOrWhiteSpace(Code) ? null : await Invites.GetAsync(Code);
+        }
+        catch (HttpRequestException)
+        {
+            _invite = null;
+        }
+        _loading = false;
+    }
+
+    private async Task CreateAccount()
+    {
+        _saving = true;
+        _error = await Invites.AcceptAsync(Code!, _form.Password);
+        if (_error == null)
+            _error = await Auth.SignInAsync(_invite!.Email, _form.Password); // takes them to their kids
+        _saving = false;
+    }
+
+    private string KidsText() => _invite!.KidNames.Count switch
+    {
+        0 => "your little one",
+        1 => _invite.KidNames[0],
+        _ => string.Join(", ", _invite.KidNames.SkipLast(1)) + " and " + _invite.KidNames[^1]
+    };
+
+    private class PasswordForm
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Choose a password.")]
+        [System.ComponentModel.DataAnnotations.MinLength(8, ErrorMessage = "Use at least 8 characters.")]
+        public string Password { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Compare(nameof(Password), ErrorMessage = "The passwords don't match.")]
+        public string Confirm { get; set; } = "";
+    }
+}

@@ -17,10 +17,21 @@ namespace FinalProjApp.Data
         public DbSet<ScheduleEvent> scheduleEvents { get; set; }
         public DbSet<AppUser> Users { get; set; }
         public DbSet<Photo> Photos { get; set; }
-        
+        public DbSet<ChildGuardian> ChildGuardians { get; set; }
+        public DbSet<Invite> Invites { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // A kid can have several guardians, and siblings share one
+            modelBuilder.Entity<ChildGuardian>().HasKey(l => new { l.ChildId, l.GuardianId });
+            modelBuilder.Entity<Invite>().HasIndex(i => i.CodeHash);
+
+            modelBuilder.Entity<ChildGuardian>().HasData(new ChildGuardian
+            {
+                ChildId = 1,
+                GuardianId = Guid.Parse("11111111-1111-1111-1111-111111111111")
+            });
+
             modelBuilder.Entity<Guardian>().HasData(data: new Guardian
             {
                 GuardianId = Guid.Parse("11111111-1111-1111-1111-111111111111"),

@@ -1,4 +1,5 @@
 using FinalProjApp.Models;
+using System.Net.Http.Json;
 
 namespace FinalProjApp.Services.Api
 {
@@ -52,14 +53,87 @@ namespace FinalProjApp.Services.Api
         private readonly ApiClient _api;
         public ApiPhotoService(ApiClient api) => _api = api;
 
-        public Task<List<Photo>> GetAllAsync() => _api.GetAsync<List<Photo>>("api/photos");
+        public Task<List<Photo>> GetAsync(bool publicAlbum) =>
+            _api.GetAsync<List<Photo>>(publicAlbum ? "api/photos/showcase" : "api/photos/families");
 
-        public async Task<Photo> AddAsync(string fileName, string contentType, byte[] data)
+        public async Task<Photo> AddAsync(string fileName, string contentType, byte[] data, bool publicAlbum)
         {
-            var photo = new Photo { FileName = fileName, ContentType = contentType, Data = data };
+            var photo = new Photo { FileName = fileName, ContentType = contentType, Data = data, IsPublic = publicAlbum };
             var response = await _api.PostAsync("api/photos", photo);
             response.EnsureSuccessStatusCode();
-            return photo;
+            return await response.Content.ReadFromJsonAsync<Photo>() ?? photo;
+        }
+
+        public Task MoveAsync(int photoId, bool toPublicAlbum) =>
+            _api.SendAsync(HttpMethod.Put, $"api/photos/{photoId}/album?isPublic={toPublicAlbum}", new { });
+
+        public Task DeleteAsync(int photoId) => _api.DeleteAsync($"api/photos/{photoId}");
+    }
+
+    /// <summary>Kids page data. Problems the server explains (409s) come back as readable messages.</summary>
+    public class ApiFamilyService : IFamilyService
+    {
+        private readonly ApiClient _api;
+        public ApiFamilyService(ApiClient api) => _api = api;
+
+        public Task<FamilySnapshot> GetAllAsync() => _api.GetAsync<FamilySnapshot>("api/family");
+
+        // The server already limits a parent's /api/children to their own kids
+        public Task<List<Child>> GetKidsOfGuardianAsync(Guid guardianId) => _api.GetAsync<List<Child>>("api/children");
+
+        public async Task<FamilyChange> AddKidAsync(Child kid, Guardian guardian) =>
+            await ReadAsync<FamilyChange>(await _api.PostAsync("api/family/kids", new NewKidRequest { Kid = kid, Guardian = guardian }));
+
+        public Task UpdateKidAsync(Child kid) => _api.SendAsync(HttpMethod.Put, $"api/family/kids/{kid.ChildId}", kid);
+
+        public Task DeleteKidAsync(int childId) => _api.DeleteAsync($"api/family/kids/{childId}");
+
+        public async Task<FamilyChange> AddGuardianAsync(int childId, Guardian guardian) =>
+            await ReadAsync<FamilyChange>(await _api.PostAsync($"api/family/kids/{childId}/guardians", guardian));
+
+        public async Task UpdateGuardianAsync(Guardian guardian) =>
+            await EnsureOkAsync(await _api.SendRawAsync(HttpMethod.Put, $"api/family/guardians/{guardian.GuardianId}", guardian));
+
+        public async Task RemoveGuardianAsync(int childId, Guid guardianId) =>
+            await EnsureOkAsync(await _api.SendRawAsync(HttpMethod.Delete, $"api/family/kids/{childId}/guardians/{guardianId}", new { }));
+
+        private static async Task<T> ReadAsync<T>(HttpResponseMessage response)
+        {
+            await EnsureOkAsync(response);
+            return (await response.Content.ReadFromJsonAsync<T>())!;
+        }
+
+        /// <summary>Turns a 409 (e.g. "A kid needs at least one guardian.") into the same error the web app shows.</summary>
+        private static async Task EnsureOkAsync(HttpResponseMessage response)
+        {
+            if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
+                throw new InvalidOperationException((await response.Content.ReadFromJsonAsync<string>()) ?? "That change isn't allowed.");
+            response.EnsureSuccessStatusCode();
+        }
+    }
+
+    public class ApiInviteService : IInviteService
+    {
+        private readonly ApiClient _api;
+        public ApiInviteService(ApiClient api) => _api = api;
+
+        public async Task<InviteResult> SendAsync(Guid guardianId)
+        {
+            var response = await _api.PostAsync($"api/family/guardians/{guardianId}/invite", new { });
+            response.EnsureSuccessStatusCode();
+            return (await response.Content.ReadFromJsonAsync<InviteResult>())!;
+        }
+
+        public async Task<InviteDetails?> GetAsync(string code)
+        {
+            var response = await _api.SendRawAsync(HttpMethod.Get, $"api/invites/{Uri.EscapeDataString(code)}", null);
+            return response.IsSuccessStatusCode ? await response.Content.ReadFromJsonAsync<InviteDetails>() : null;
+        }
+
+        public async Task<string?> AcceptAsync(string code, string password)
+        {
+            var response = await _api.PostAsync($"api/invites/{Uri.EscapeDataString(code)}/accept", new AcceptInviteRequest { Password = password });
+            return response.IsSuccessStatusCode ? null : await response.Content.ReadFromJsonAsync<string>();
         }
     }
 }

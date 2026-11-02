@@ -1,10 +1,5 @@
-using System.Text.Json.Serialization;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Text.Json.Serialization;
 
 namespace FinalProjApp.Models
 {
@@ -14,7 +9,7 @@ namespace FinalProjApp.Models
         [Required]
         public Guid GuardianId { get; set; }
         [Required]
-        public string FullName { get; set; }
+        public string FullName { get; set; } = "";
         // Text, not a number: 10-digit numbers overflow an int and lose formatting.
         // Older databases still have an INTEGER column; SQLite stores this text there fine.
         [Required]
@@ -22,15 +17,14 @@ namespace FinalProjApp.Models
         [MaxLength(25)]
         public string PhoneNumber { get; set; } = "";
         [Required]
-        public string Address { get; set; }
+        public string Address { get; set; } = "";
+
+        /// <summary>Where the parent-portal invite goes; also how siblings find the same guardian.</summary>
+        [EmailAddress]
+        [MaxLength(256)]
+        public string? Email { get; set; }
 
         [JsonIgnore] // navigation: not sent over the API
         public virtual ICollection<Child> Children { get; set; } = new List<Child>();
-
-        public Guardian()
-        {
-            
-        }
-
     }
 }

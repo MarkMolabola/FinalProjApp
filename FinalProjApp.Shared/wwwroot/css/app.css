@@ -212,6 +212,9 @@ a, .btn-link { color: var(--coral-dark); }
     align-items: start;
 }
 
+/* Let long text (emails) shrink or wrap instead of stretching the column off-screen */
+.two-col > * { min-width: 0; }
+
 @media (min-width: 900px) {
     .two-col { grid-template-columns: minmax(300px, 380px) 1fr; }
 }
@@ -541,6 +544,51 @@ a, .btn-link { color: var(--coral-dark); }
 }
 
 .photo-item:hover { transform: scale(1.02) rotate(-0.5deg); }
+
+.photo-tile { position: relative; }
+
+.photo-actions {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    display: flex;
+    gap: 6px;
+}
+
+.photo-actions .icon-btn {
+    width: 34px;
+    height: 34px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Admin's Families / Showcase switch on the Photos page */
+.album-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 6px;
+    background: var(--surface);
+    border-radius: 20px;
+    box-shadow: var(--shadow-sm);
+}
+
+.album-tab {
+    border: 0;
+    border-radius: 15px;
+    padding: 0.6rem 0.5rem;
+    background: transparent;
+    color: var(--muted);
+    font-weight: 800;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1.2;
+}
+
+.album-tab small { font-size: 0.7rem; font-weight: 700; opacity: 0.85; }
+
+.album-tab.active { background: var(--coral-50); color: var(--coral-dark); }
 
 /* ── Crew ─────────────────────────────────────────────────────────────── */
 

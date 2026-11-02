@@ -31,6 +31,8 @@ namespace FinalProjApp
             builder.Services.AddScoped<ICRUD<Guardian>, ApiGuardianService>();
             builder.Services.AddScoped<ICRUD<ScheduleEvent>, ApiScheduleEventService>();
             builder.Services.AddScoped<IPhotoService, ApiPhotoService>();
+            builder.Services.AddScoped<IFamilyService, ApiFamilyService>();
+            builder.Services.AddScoped<IInviteService, ApiInviteService>();
 
             builder.Services.AddAuthorizationCore();
             builder.Services.AddScoped<CustomAuthStateProvider>();

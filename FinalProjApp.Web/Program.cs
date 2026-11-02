@@ -30,6 +30,16 @@ builder.Services.AddScoped<ICRUD<Child>, ChildCRUD>();
 builder.Services.AddScoped<ICRUD<Guardian>, GuardianCRUD>();
 builder.Services.AddScoped<ICRUD<ScheduleEvent>, ScheduleEventCRUD>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
+builder.Services.AddScoped<IFamilyService, FamilyService>();
+builder.Services.AddScoped<IInviteService, InviteService>();
+builder.Services.AddHttpContextAccessor();
+
+// Invite emails go through Azure Communication Services once it's configured;
+// until then they're logged and the admin gets the link to copy
+if (builder.Configuration["Email:ConnectionString"] is { Length: > 0 })
+    builder.Services.AddSingleton<IEmailSender, AcsEmailSender>();
+else
+    builder.Services.AddSingleton<IEmailSender, LogEmailSender>();
 
 // Sign-in: a cookie, so refreshing the page keeps you signed in
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

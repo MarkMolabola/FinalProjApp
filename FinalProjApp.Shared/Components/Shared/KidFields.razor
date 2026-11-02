@@ -1,0 +1,24 @@
+@* The kid's name and birthday fields, shared by the Add and Edit kid forms *@
+
+<div class="row g-2">
+    <div class="col-6 form-group mb-2">
+        <label>First name</label>
+        <InputText class="form-control" @bind-Value="Form.FirstName" placeholder="Ava" />
+        <ValidationMessage For="@(() => Form.FirstName)" />
+    </div>
+    <div class="col-6 form-group mb-2">
+        <label>Last name</label>
+        <InputText class="form-control" @bind-Value="Form.LastName" placeholder="Martinez" />
+        <ValidationMessage For="@(() => Form.LastName)" />
+    </div>
+</div>
+
+<div class="form-group">
+    <label>Date of birth</label>
+    <InputDate class="form-control" @bind-Value="Form.DateofBirth" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+    <ValidationMessage For="@(() => Form.DateofBirth)" />
+</div>
+
+@code {
+    [Parameter, EditorRequired] public KidForm Form { get; set; } = default!;
+}
