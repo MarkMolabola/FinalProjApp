@@ -1,0 +1,62 @@
+@page "/crew"
+
+<div class="page-head">
+    <div>
+        <h1>Meet the crew</h1>
+        <p>The friendly faces your little ones see every day.</p>
+    </div>
+</div>
+
+<div class="crew-grid">
+    @foreach (var member in CrewMembers)
+    {
+        <div class="crew-card">
+            <img src="@member.PhotoUrl" alt="@member.Name" class="crew-photo"
+                 style="box-shadow: 0 0 0 5px var(--@member.Color);" />
+            <h3>@member.Name</h3>
+            <span class="pill tint-@member.Color">@member.Role</span>
+            <p class="bio">@member.Bio</p>
+        </div>
+    }
+</div>
+
+@code {
+    private List<CrewMember> CrewMembers = new()
+    {
+        new CrewMember
+        {
+            Name = "Thor Martinez",
+            Role = "Lead Educator",
+            Bio = "Thor brings 10 years of early childhood experience and a passion for creative learning.",
+            PhotoUrl = "_content/FinalProjApp.Shared/Images/crew/thor.jpg",
+            Color = "coral"
+        },
+        new CrewMember
+        {
+            Name = "Widow Chen",
+            Role = "Activity Coordinator",
+            Bio = "Widow designs engaging activities that blend fun with developmental milestones.",
+            PhotoUrl = "_content/FinalProjApp.Shared/Images/crew/widow.jpg",
+            Color = "lilac"
+        },
+        new CrewMember
+        {
+            Name = "Maui Johnson",
+            Role = "Nutrition Specialist",
+            Bio = "Maui ensures every child gets balanced meals and snack options tailored to their needs.",
+            PhotoUrl = "_content/FinalProjApp.Shared/Images/crew/Maui.jpg",
+            Color = "mint"
+        }
+    };
+
+    public class CrewMember
+    {
+        public string Name { get; set; } = "";
+        public string Role { get; set; } = "";
+        public string Bio { get; set; } = "";
+        public string PhotoUrl { get; set; } = "";
+
+        /// <summary>Palette name for the photo ring and role pill: coral, mint, sky, sun or lilac.</summary>
+        public string Color { get; set; } = "coral";
+    }
+}

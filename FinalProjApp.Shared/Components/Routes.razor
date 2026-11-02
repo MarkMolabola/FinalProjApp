@@ -1,0 +1,15 @@
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(Routes).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MainLayout)">
+                <NotAuthorized>
+                    <FinalProjApp.Components.Shared.RedirectToLogin />
+                </NotAuthorized>
+                <Authorizing>
+                    <p>Checking authentication...</p>
+                </Authorizing>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+    </Router>
+</CascadingAuthenticationState>
