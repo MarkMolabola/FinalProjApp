@@ -1,133 +1,198 @@
-﻿@page "/AddSchedule"
+@page "/AddSchedule"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Staff")]
 @using FinalProjApp.Models
 @using FinalProjApp.Services
 @inject ICRUD<Child> ChildService
 @inject ICRUD<ScheduleEvent> EventService
 
-<h3>Add New Schedule Event</h3>
-<div class="d-flex justify-content-between">
-    <div style="width: 40%;">
-        <!-- Your existing EditForm goes here -->
+<div class="page-head">
+    <div>
+        <h1>Schedule</h1>
+        <p>Drop-offs, pickups and repeating days · tap an event to edit</p>
+    </div>
+</div>
+
+<div class="two-col">
+
+    <!-- ── Form ── -->
+    <div class="soft-card">
+        <div class="card-title-row">
+            <h3>@(selectedEvent != null ? "Edit event" : "New event")</h3>
+            @if (selectedEvent != null)
+            {
+                <button type="button" class="icon-btn" title="Cancel" @onclick="ClearSelection">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            }
+        </div>
+
         <EditForm Model="@newEvent" OnValidSubmit="@HandleValidSubmit">
             <DataAnnotationsValidator />
-            <ValidationSummary />
+            <ValidationSummary class="validation-errors" />
 
             <div class="form-group">
-                <label>Select Child</label>
-                <InputSelect class="form-control" @bind-Value="newEvent.ChildId" TValue="int">
-                    <option value="">-- Choose Child --</option>
-                    @foreach (var child in children)
+                <label>Kid</label>
+                <InputSelect class="form-select" @bind-Value="newEvent.ChildId" TValue="int">
+                    <option value="0">Choose a kid…</option>
+                    @foreach (var c in children.OrderBy(c => c.FirstName))
                     {
-                        <option value="@child.ChildId">@child.LastName, @child.FirstName</option>
+                        <option value="@c.ChildId">@c.FirstName @c.LastName</option>
                     }
                 </InputSelect>
-                <ValidationMessage For="@(() => newEvent.ChildId)" />
             </div>
-            <div class="form-group">
-                <label>Subject</label>
-                <InputText class="form-control" @bind-Value="newEvent.Subject" />
-                <ValidationMessage For="@(() => newEvent.Subject)" />
+
+            <div class="row g-2">
+                <div class="col-12 col-sm-6 form-group mb-2">
+                    <label>Starts</label>
+                    <InputDate Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="newEvent.StartTime" />
+                </div>
+                <div class="col-12 col-sm-6 form-group mb-2">
+                    <label>Ends</label>
+                    <InputDate Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="newEvent.EndTime" />
+                </div>
             </div>
+
+            <div class="d-flex flex-wrap gap-3 my-2">
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="pickupChk" @bind="newEvent.NeedsPickup" />
+                    <label class="form-check-label" for="pickupChk"><i class="bi bi-car-front-fill me-1"></i>Needs pickup</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="recurChk" @bind="_isRecurring" />
+                    <label class="form-check-label" for="recurChk"><i class="bi bi-arrow-repeat me-1"></i>Repeats</label>
+                </div>
+            </div>
+
+            @if (_isRecurring)
+            {
+                <div class="row g-2">
+                    <div class="col-6 form-group mb-2">
+                        <label>Every</label>
+                        <select class="form-select" @bind="_recurrenceFreq">
+                            <option value="DAILY">Day</option>
+                            <option value="WEEKLY">Week</option>
+                            <option value="MONTHLY">Month</option>
+                        </select>
+                    </div>
+                    <div class="col-6 form-group mb-2">
+                        <label>Until</label>
+                        <InputDate class="form-control" @bind-Value="_recurrenceUntil" />
+                    </div>
+                </div>
+            }
 
             <div class="form-group">
-                <label>Description</label>
-                <InputText class="form-control" @bind-Value="newEvent.Description" />
-                <ValidationMessage For="@(() => newEvent.Description)" />
+                <label>Note</label>
+                <InputTextArea class="form-control" rows="2" @bind-Value="newEvent.Note" placeholder="e.g. Grandma picks up" />
             </div>
 
-            <div class="form-group">
-                <label>Location</label>
-                <InputText class="form-control" @bind-Value="newEvent.Location" />
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="bi @(selectedEvent != null ? "bi-check-lg" : "bi-plus-lg") me-1"></i>
+                    @(selectedEvent != null ? "Save changes" : "Add event")
+                </button>
+                @if (selectedEvent != null)
+                {
+                    <button type="button" class="btn btn-danger" title="Delete" @onclick="DeleteSelected">
+                        <i class="bi bi-trash3-fill"></i>
+                    </button>
+                }
             </div>
-
-            <div class="form-group">
-                <label>Start Time</label>
-                <InputDate class="form-control" @bind-Value="newEvent.StartTime" />
-            </div>
-
-            <div class="form-group">
-                <label>End Time</label>
-                <InputDate class="form-control" @bind-Value="newEvent.EndTime" />
-            </div>
-
-            <div class="form-check">
-                <InputCheckbox class="form-check-input" @bind-Value="newEvent.IsAllDay" />
-                <label class="form-check-label">All Day Event</label>
-            </div>
-
-            <button type="submit" class="btn btn-success mt-3">Add Schedule</button>
         </EditForm>
     </div>
 
-    <div style="width: 58%;">
-        <h4>Existing Events</h4>
+    <!-- ── Events, grouped by day ── -->
+    <div class="soft-card">
+        <div class="card-title-row">
+            <h3>All events</h3>
+            <span class="pill tint-sky">@events.Count @(events.Count == 1 ? "event" : "events")</span>
+        </div>
+
         @if (events != null && events.Any())
         {
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>Child</th>
-                        <th>Subject</th>
-                        <th>Start</th>
-                        <th>End</th>
-                        <th>Location</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var ev in events)
+            @foreach (var day in events.OrderBy(e => e.StartTime).GroupBy(e => e.StartTime.Date))
+            {
+                <div class="section-label">@DayHeader(day.Key)</div>
+                <div class="list-stack">
+                    @foreach (var ev in day)
                     {
                         var child = children.FirstOrDefault(c => c.ChildId == ev.ChildId);
-                        <tr @onclick="@(() => SelectEvent(ev))" style="cursor:pointer;">
-                            <td>@(child?.LastName ?? "Unknown")</td>
-                            <td>@ev.Subject</td>
-                            <td>@ev.StartTime.ToShortTimeString()</td>
-                            <td>@ev.EndTime.ToShortTimeString()</td>
-                            <td>@ev.Location</td>
-                        </tr>
+                        var isSelected = selectedEvent?.Id == ev.Id;
+                        <div class="list-row clickable @(isSelected ? "selected" : "")" @onclick="@(() => SelectEvent(ev))">
+                            <div class="timeline-time">
+                                @ev.StartTime.ToString("h:mm")
+                                <small>@ev.StartTime.ToString("tt")</small>
+                            </div>
+                            <div class="grow">
+                                <div class="title">@(child != null ? $"{child.FirstName} {child.LastName}" : "Unknown")</div>
+                                <div class="sub">
+                                    until @ev.EndTime.ToString("h:mm tt")@(string.IsNullOrWhiteSpace(ev.Note) ? "" : $" · {ev.Note}")
+                                </div>
+                            </div>
+                            <div class="d-flex flex-column align-items-end gap-1">
+                                @if (ev.NeedsPickup)
+                                {
+                                    <span class="pill tint-sky"><i class="bi bi-car-front-fill"></i> Pickup</span>
+                                }
+                                @if (!string.IsNullOrEmpty(ev.RecurrenceRule))
+                                {
+                                    <span class="pill tint-lilac"><i class="bi bi-arrow-repeat"></i> Repeats</span>
+                                }
+                            </div>
+                        </div>
                     }
-                </tbody>
-            </table>
+                </div>
+            }
         }
         else
         {
-            <p>No events found.</p>
-        }
-
-        @if (selectedEvent != null)
-        {
-            <button class="btn btn-danger mt-2" @onclick="DeleteSelected">Delete Selected</button>
-            <button class="btn btn-secondary mt-2 ms-2" @onclick="ClearSelection">Cancel</button>
+            <div class="empty-state">
+                <span class="emoji">🗓️</span>
+                No events yet. Add one with the form.
+            </div>
         }
     </div>
+
 </div>
+
 @code {
     private ScheduleEvent newEvent = new();
     private List<Child> children = new();
     private List<ScheduleEvent> events = new();
     private ScheduleEvent? selectedEvent;
 
+    private bool _isRecurring = false;
+    private string _recurrenceFreq = "WEEKLY";
+    private DateTime _recurrenceUntil = DateTime.Today.AddMonths(3);
+
     protected override async Task OnInitializedAsync()
     {
-        children = await ChildService.GetList() ?? new List<Child>();
-        events = await EventService.GetList() ?? new List<ScheduleEvent>();
+        children = await ChildService.GetList() ?? new();
+        events = await EventService.GetList() ?? new();
     }
 
     private async Task HandleValidSubmit()
     {
         try
         {
+            // Auto-set subject to child's name
+            var child = children.FirstOrDefault(c => c.ChildId == newEvent.ChildId);
+            newEvent.Subject = child != null ? $"{child.FirstName} {child.LastName}" : "Event";
+
+            // Build RRULE
+            newEvent.RecurrenceRule = _isRecurring
+                ? $"FREQ={_recurrenceFreq};INTERVAL=1;UNTIL={_recurrenceUntil:yyyyMMdd}T000000Z;"
+                : null;
+
             if (selectedEvent != null)
-            {
                 await EventService.Update(newEvent.Id, newEvent);
-            }
             else
-            {
                 await EventService.Add(newEvent);
-            }
 
             newEvent = new();
             selectedEvent = null;
-            events = await EventService.GetList() ?? new List<ScheduleEvent>();
+            _isRecurring = false;
+            events = await EventService.GetList() ?? new();
         }
         catch (Exception ex)
         {
@@ -138,35 +203,52 @@
     private void SelectEvent(ScheduleEvent ev)
     {
         selectedEvent = ev;
+        _isRecurring = !string.IsNullOrEmpty(ev.RecurrenceRule);
+
+        if (_isRecurring && ev.RecurrenceRule != null)
+        {
+            var freqMatch = System.Text.RegularExpressions.Regex.Match(ev.RecurrenceRule, @"FREQ=(\w+)");
+            _recurrenceFreq = freqMatch.Success ? freqMatch.Groups[1].Value : "WEEKLY";
+
+            var untilMatch = System.Text.RegularExpressions.Regex.Match(ev.RecurrenceRule, @"UNTIL=(\d{8})");
+            if (untilMatch.Success && DateTime.TryParseExact(untilMatch.Groups[1].Value, "yyyyMMdd",
+                null, System.Globalization.DateTimeStyles.None, out var until))
+                _recurrenceUntil = until;
+        }
+
         newEvent = new ScheduleEvent
         {
             Id = ev.Id,
             ChildId = ev.ChildId,
             Subject = ev.Subject,
-            Description = ev.Description,
-            Location = ev.Location,
+            Note = ev.Note,
+            NeedsPickup = ev.NeedsPickup,
             StartTime = ev.StartTime,
             EndTime = ev.EndTime,
-            IsAllDay = ev.IsAllDay
+            IsAllDay = ev.IsAllDay,
+            RecurrenceRule = ev.RecurrenceRule
         };
     }
+
+    private static string DayHeader(DateTime day) =>
+        day == DateTime.Today ? "Today"
+        : day == DateTime.Today.AddDays(1) ? "Tomorrow"
+        : day.ToString(day.Year == DateTime.Today.Year ? "dddd, MMM d" : "MMM d, yyyy");
 
     private void ClearSelection()
     {
         selectedEvent = null;
+        _isRecurring = false;
         newEvent = new();
     }
 
     private async Task DeleteSelected()
     {
-        if (selectedEvent != null)
-        {
-            await EventService.Delete(selectedEvent);
-            selectedEvent = null;
-            newEvent = new();
-            events = await EventService.GetList() ?? new List<ScheduleEvent>();
-        }
+        if (selectedEvent == null) return;
+        await EventService.Delete(selectedEvent);
+        selectedEvent = null;
+        newEvent = new();
+        _isRecurring = false;
+        events = await EventService.GetList() ?? new();
     }
-
-
 }

@@ -1,77 +1,83 @@
 .page {
-    position: relative;
     display: flex;
     flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+    background: var(--bg);
+}
+
+.top-bar {
+    height: 4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0 1rem;
+    flex-shrink: 0;
+    background: var(--surface);
+    box-shadow: 0 2px 14px rgba(61, 53, 81, 0.06);
+    z-index: 10;
+}
+
+.top-bar ::deep .brand {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    text-decoration: none;
+    min-width: 0;
+}
+
+.brand-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #FFD9CF, #FFE9B8);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+}
+
+.brand-name {
+    font-weight: 900;
+    font-size: 1.15rem;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+}
+
+.user-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.2rem 0.65rem 0.2rem 0.2rem;
+    border-radius: 999px;
+    background: var(--surface-soft);
+    border: 2px solid var(--line);
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.75rem;
+    background: var(--lilac-50);
+    color: #7A5BD6;
+}
+
+.user-role {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--ink-soft);
 }
 
 main {
     flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 104px; /* clear the floating nav */
 }
 
-.sidebar {
-    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
-}
-
-.top-row {
-    background-color: #f7f7f7;
-    border-bottom: 1px solid #d6d5d5;
-    justify-content: flex-end;
-    height: 3.5rem;
-    display: flex;
-    align-items: center;
-}
-
-    .top-row ::deep a, .top-row ::deep .btn-link {
-        white-space: nowrap;
-        margin-left: 1.5rem;
-        text-decoration: none;
-    }
-
-        .top-row ::deep a:hover, .top-row ::deep .btn-link:hover {
-            text-decoration: underline;
-        }
-
-        .top-row ::deep a:first-child {
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-@media (max-width: 640.98px) {
-    .top-row {
-        justify-content: space-between;
-    }
-
-        .top-row ::deep a, .top-row ::deep .btn-link {
-            margin-left: 0;
-        }
-}
-
-@media (min-width: 641px) {
-    .page {
-        flex-direction: row;
-    }
-
-    .sidebar {
-        width: 250px;
-        height: 100vh;
-        position: sticky;
-        top: 0;
-    }
-
-    .top-row {
-        position: sticky;
-        top: 0;
-        z-index: 1;
-    }
-
-        .top-row.auth ::deep a:first-child {
-            flex: 1;
-            text-align: right;
-            width: 0;
-        }
-
-    .top-row, article {
-        padding-left: 2rem !important;
-        padding-right: 1.5rem !important;
-    }
+.content {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1.25rem 1rem 0;
 }

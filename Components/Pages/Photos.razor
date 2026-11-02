@@ -1,26 +1,50 @@
 ﻿@page "/photos"
 @using Microsoft.EntityFrameworkCore
-@inject IJSRuntime JS
 @using FinalProjApp.Data
 @using FinalProjApp.Models
-@inject PhotoContext Db
+@inject DataContext Db
 
-<h3>Upload Photos</h3>
+<div class="page-head">
+    <div>
+        <h1>Photo gallery</h1>
+        <p>Little moments from our days together.</p>
+    </div>
+</div>
 
-<InputFile OnChange="HandleFileUpload" multiple />
+<label class="upload-drop">
+    <span class="bubble bubble-lg tint-coral"><i class="bi bi-cloud-arrow-up-fill"></i></span>
+    <span class="grow">
+        <span class="title d-block">@(_uploading ? "Uploading…" : "Add photos")</span>
+        <span class="sub d-block">Tap to choose one or more pictures</span>
+    </span>
+    <InputFile OnChange="HandleFileUpload" multiple accept="image/*" />
+</label>
 
 @if (ImageUrls.Any())
 {
     <div class="photo-grid">
         @foreach (var url in ImageUrls)
         {
-            <img src="@url" class="photo-item" />
+            <img src="@url" class="photo-item" alt="" />
         }
+    </div>
+}
+else
+{
+    <div class="soft-card mt-3">
+        <div class="empty-state">
+            <span class="emoji">📸</span>
+            No photos yet. Add the first one!
+        </div>
     </div>
 }
 
 @code {
+    // Phone cameras take big pictures; 15 MB leaves headroom over the 500 KB default
+    private const long MaxPhotoBytes = 15 * 1024 * 1024;
+
     private List<string> ImageUrls = new();
+    private bool _uploading;
 
     protected override async Task OnInitializedAsync()
     {
@@ -33,24 +57,34 @@
 
     private async Task HandleFileUpload(InputFileChangeEventArgs e)
     {
-        foreach (var file in e.GetMultipleFiles())
+        _uploading = true;
+        try
         {
-            var buffer = new byte[file.Size];
-            await file.OpenReadStream().ReadAsync(buffer);
-
-            var photo = new Photo
+            foreach (var file in e.GetMultipleFiles())
             {
-                FileName = file.Name,
-                ContentType = file.ContentType,
-                Data = buffer
-            };
+                using var stream = file.OpenReadStream(MaxPhotoBytes);
+                using var memory = new MemoryStream();
+                await stream.CopyToAsync(memory);
+                var buffer = memory.ToArray();
 
-            Db.Photos.Add(photo);
-            await Db.SaveChangesAsync();
+                Db.Photos.Add(new Photo
+                {
+                    FileName = file.Name,
+                    ContentType = file.ContentType,
+                    Data = buffer
+                });
+                await Db.SaveChangesAsync();
 
-            var base64 = Convert.ToBase64String(buffer);
-            var imageUrl = $"data:{file.ContentType};base64,{base64}";
-            ImageUrls.Add(imageUrl);
+                ImageUrls.Insert(0, $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Upload error: {ex.Message}");
+        }
+        finally
+        {
+            _uploading = false;
         }
     }
 }

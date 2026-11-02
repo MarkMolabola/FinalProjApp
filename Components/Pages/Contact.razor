@@ -1,48 +1,86 @@
 ﻿@page "/contact"
 @using System.ComponentModel.DataAnnotations
 @using FinalProjApp.Models
-<h1>Contact Us</h1>
 
-<EditForm Model="@contactForm" OnValidSubmit="HandleSubmit">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-
-    <div class="form-group">
-        <label>Name</label>
-        <InputText class="form-control" @bind-Value="contactForm.Name" />
-        <ValidationMessage For="@(() => contactForm.Name)" />
+<div class="page-head">
+    <div>
+        <h1>Say hello 👋</h1>
+        <p>Questions about enrollment, schedules or anything else? We'd love to hear from you.</p>
     </div>
-
-    <div class="form-group">
-        <label>Email</label>
-        <InputText class="form-control" @bind-Value="contactForm.Email" />
-        <ValidationMessage For="@(() => contactForm.Email)" />
-    </div>
-
-    <div class="form-group">
-        <label>Message</label>
-        <InputTextArea class="form-control" @bind-Value="contactForm.Message" rows="5" />
-        <ValidationMessage For="@(() => contactForm.Message)" />
-    </div>
-
-    <button type="submit" class="btn btn-primary mt-3">Send Message</button>
-</EditForm>
-<hr />
-<h5>Reach Us Directly</h5>
-
-<div class="contact-info">
-    <p><span class="bi bi-envelope-fill"></span> Email: <a href="mailto:info@daycaredemo.com">info@daycaredemo.com</a></p>
-    <p><span class="bi bi-telephone-fill"></span> Phone 1: <a href="tel:+15551234567">(555) 123-4567</a></p>
-    <p><span class="bi bi-telephone-fill"></span> Phone 2: <a href="tel:+15557654321">(555) 765-4321</a></p>
-    <p><span class="bi bi-geo-alt-fill"></span> Address: 123 Sunshine Lane, Long Beach, CA 90802</p>
 </div>
 
-@if (submitted)
-{
-    <div class="alert alert-success mt-3">
-        Thank you! We'll get back to you soon.
+<div class="two-col">
+    <div class="soft-card">
+        <h3>Reach us directly</h3>
+        <div class="list-stack">
+            <a class="list-row clickable text-decoration-none" href="mailto:info@daycaredemo.com">
+                <span class="bubble tint-coral"><i class="bi bi-envelope-heart-fill"></i></span>
+                <div class="grow">
+                    <div class="title">Email</div>
+                    <div class="sub">info@daycaredemo.com</div>
+                </div>
+            </a>
+            <a class="list-row clickable text-decoration-none" href="tel:+15551234567">
+                <span class="bubble tint-mint"><i class="bi bi-telephone-fill"></i></span>
+                <div class="grow">
+                    <div class="title">Front desk</div>
+                    <div class="sub">(555) 123-4567</div>
+                </div>
+            </a>
+            <a class="list-row clickable text-decoration-none" href="tel:+15557654321">
+                <span class="bubble tint-sky"><i class="bi bi-telephone-fill"></i></span>
+                <div class="grow">
+                    <div class="title">Director</div>
+                    <div class="sub">(555) 765-4321</div>
+                </div>
+            </a>
+            <div class="list-row">
+                <span class="bubble tint-sun"><i class="bi bi-geo-alt-fill"></i></span>
+                <div class="grow">
+                    <div class="title">Visit us</div>
+                    <div class="sub" style="white-space: normal;">123 Sunshine Lane, Long Beach, CA 90802</div>
+                </div>
+            </div>
+        </div>
     </div>
-}
+
+    <div class="soft-card">
+        <h3>Send a message</h3>
+
+        @if (submitted)
+        {
+            <div class="alert alert-success d-flex align-items-center gap-2">
+                <i class="bi bi-heart-fill"></i> Thank you! We'll get back to you soon.
+            </div>
+        }
+
+        <EditForm Model="@contactForm" OnValidSubmit="HandleSubmit">
+            <DataAnnotationsValidator />
+
+            <div class="form-group">
+                <label>Your name</label>
+                <InputText class="form-control" @bind-Value="contactForm.Name" placeholder="Jane Doe" />
+                <ValidationMessage For="@(() => contactForm.Name)" />
+            </div>
+
+            <div class="form-group">
+                <label>Email</label>
+                <InputText class="form-control" @bind-Value="contactForm.Email" placeholder="you@example.com" />
+                <ValidationMessage For="@(() => contactForm.Email)" />
+            </div>
+
+            <div class="form-group">
+                <label>Message</label>
+                <InputTextArea class="form-control" @bind-Value="contactForm.Message" rows="5" placeholder="How can we help?" />
+                <ValidationMessage For="@(() => contactForm.Message)" />
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100">
+                <i class="bi bi-send-fill me-1"></i>Send message
+            </button>
+        </EditForm>
+    </div>
+</div>
 
 @code {
     private ContactForm contactForm = new();
@@ -53,7 +91,6 @@
         submitted = true;
         Console.WriteLine($"Name: {contactForm.Name}, Email: {contactForm.Email}, Message: {contactForm.Message}");
         // You can later save to DB or send via email
+        contactForm = new();
     }
-
-   
 }

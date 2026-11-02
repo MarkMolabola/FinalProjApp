@@ -1,49 +1,47 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">DayCare App</a>
-    </div>
-</div>
+<nav class="bottom-nav">
+    <NavLink class="bottom-nav-item" href="" Match="NavLinkMatch.All">
+        <i class="bi bi-house-heart-fill"></i>
+        <span>Home</span>
+    </NavLink>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+    <AuthorizeView Roles="Parent">
+        <Authorized>
+            <NavLink class="bottom-nav-item" href="/parent-portal">
+                <i class="bi bi-balloon-heart-fill"></i>
+                <span>My Kids</span>
+            </NavLink>
+        </Authorized>
+    </AuthorizeView>
 
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="flex-column">
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+    <AuthorizeView Roles="Admin,Staff">
+        <Authorized>
+            <NavLink class="bottom-nav-item" href="Calendar">
+                <i class="bi bi-calendar-heart-fill"></i>
+                <span>Calendar</span>
             </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="AddNew">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Add New Child
+            <NavLink class="bottom-nav-item" href="AddSchedule">
+                <i class="bi bi-clock-fill"></i>
+                <span>Schedule</span>
             </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="AddSchedule">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Add Child Schedule
+            <NavLink class="bottom-nav-item" href="AddNew">
+                <i class="bi bi-people-fill"></i>
+                <span>Kids</span>
             </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="Calendar">
-                <span class="bi bi-calendar-fill  fs-4" style="position: relative; top: 2px;" aria-hidden="true"></span>Calendar
-            </NavLink>
-        </div>
-     
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="photos">
-                <span class="bi bi-image-fill fs-4" style="position: relative; top: 2px;" aria-hidden="true"></span> Photos
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/crew">
-                <span class="bi bi-people-fill fs-4" style="position: relative; top: 2px;" aria-hidden="true"></span> Meet the Crew
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/contact">
-                <span class="bi bi-telephone-fill fs-4" style="position: relative; top: 2px;" aria-hidden="true"></span> Contact Us
-            </NavLink>
-        </div>
-        
-    </nav>
-</div>
+        </Authorized>
+    </AuthorizeView>
+
+    <NavLink class="bottom-nav-item" href="photos">
+        <i class="bi bi-images"></i>
+        <span>Photos</span>
+    </NavLink>
+
+    <NavLink class="bottom-nav-item" href="/crew">
+        <i class="bi bi-emoji-smile-fill"></i>
+        <span>Crew</span>
+    </NavLink>
+
+    <NavLink class="bottom-nav-item" href="/contact">
+        <i class="bi bi-chat-heart-fill"></i>
+        <span>Contact</span>
+    </NavLink>
+</nav>

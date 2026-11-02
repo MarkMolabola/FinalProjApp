@@ -40,11 +40,13 @@ namespace FinalProjApp.Services
             if (existingEvent != null)
             {
                 existingEvent.Subject = updatedEvent.Subject;
+                existingEvent.ChildId = updatedEvent.ChildId;
                 existingEvent.StartTime = updatedEvent.StartTime;
                 existingEvent.EndTime = updatedEvent.EndTime;
-                existingEvent.Description = updatedEvent.Description;
-                existingEvent.Location = updatedEvent.Location;
                 existingEvent.IsAllDay = updatedEvent.IsAllDay;
+                existingEvent.NeedsPickup = updatedEvent.NeedsPickup;
+                existingEvent.Note = updatedEvent.Note;
+                existingEvent.RecurrenceRule = updatedEvent.RecurrenceRule;
 
                 await _dataContext.SaveChangesAsync();
             }

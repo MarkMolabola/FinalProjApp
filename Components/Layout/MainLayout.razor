@@ -1,21 +1,59 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@inject FinalProjApp.Services.CustomAuthStateProvider AuthStateProvider
+@inject NavigationManager Nav
 
 <HeadContent>
     <link href="css/app.css" rel="stylesheet" />
 </HeadContent>
 
 <div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+    <header class="top-bar">
+        <NavLink href="" class="brand" Match="NavLinkMatch.All">
+            <span class="brand-logo">🧸</span>
+            <span class="brand-name">Caly Bear</span>
+        </NavLink>
+
+        <AuthorizeView>
+            <Authorized>
+                <div class="user-chip" title="@context.User.Identity?.Name">
+                    <span class="avatar user-avatar">@Initials(context.User.Identity?.Name)</span>
+                    <span class="user-role">@context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</span>
+                </div>
+                <button class="icon-btn" title="Log out" @onclick="Logout">
+                    <i class="bi bi-box-arrow-right"></i>
+                </button>
+            </Authorized>
+            <NotAuthorized>
+                <NavLink class="btn btn-primary btn-sm" href="/login">
+                    <i class="bi bi-person-fill me-1"></i>Sign in
+                </NavLink>
+            </NotAuthorized>
+        </AuthorizeView>
+    </header>
 
     <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
-
-        <article class="content px-4">
+        <article class="content">
             @Body
         </article>
     </main>
+
+    <NavMenu />
 </div>
+
+@code {
+    private void Logout()
+    {
+        AuthStateProvider.NotifyUserLoggedOut();
+        Nav.NavigateTo("/login");
+    }
+
+    /// <summary>"maria.lee@calybear.com" → "ML", "admin@calybear.com" → "AD".</summary>
+    private static string Initials(string? email)
+    {
+        var name = (email ?? "").Split('@')[0];
+        var parts = name.Split('.', '_', '-').Where(p => p.Length > 0).ToArray();
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[1][0]}".ToUpperInvariant()
+            : name.Length >= 2 ? name[..2].ToUpperInvariant() : "?";
+    }
+}

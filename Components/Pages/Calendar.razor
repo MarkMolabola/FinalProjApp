@@ -1,93 +1,393 @@
-﻿@page "/Calendar"
+@page "/Calendar"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Staff")]
 @using FinalProjApp.Models
 @using FinalProjApp.Services
-@using Syncfusion.Blazor
 @using Syncfusion.Blazor.Schedule
 
 @inject ICRUD<ScheduleEvent> EventService
-<h3>Calendar</h3>
+@inject ICRUD<Child> ChildService
 
+<div class="page-head">
+    <div>
+        <h1>Calendar</h1>
+        <p>Tap a day to add an event · tap an event to edit</p>
+    </div>
+    <div class="d-none d-sm-flex gap-2">
+        <span class="pill tint-sky"><i class="bi bi-car-front-fill"></i> Pickup</span>
+        <span class="pill tint-coral"><i class="bi bi-sun-fill"></i> Drop-off / stay</span>
+    </div>
+</div>
 
-
-@if (Events != null)
+@* Modal *@
+@if (_showForm)
 {
-    <SfSchedule TValue="ScheduleEvent" SelectedDate="@DateTime.Today" Height="auto" Width="100%">
-        <ScheduleViews>
-            <ScheduleView Option="View.Month"></ScheduleView>
-            <ScheduleView Option="View.Week"></ScheduleView>
-            <ScheduleView Option="View.Day"></ScheduleView>
-        </ScheduleViews>
-        <ScheduleEventSettings TValue="ScheduleEvent" DataSource="@Events" />
-    </SfSchedule>
+    <div class="modal-backdrop-custom" @onclick="CloseForm"></div>
+    <div class="modal-popup">
+        <div class="card-title-row">
+            <h3>@(_editingEvent?.Id > 0 ? "Edit event" : "New event")</h3>
+            <button type="button" class="icon-btn" title="Close" @onclick="CloseForm">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+        <EditForm Model="@_formEvent" OnValidSubmit="SaveEvent">
+            <DataAnnotationsValidator />
+            <div class="row g-2">
+
+                <div class="col-12 form-group mb-2">
+                    <label>Kid</label>
+                    <InputSelect class="form-select" @bind-Value="_formEvent.ChildId" TValue="int">
+                        <option value="0">Choose a kid…</option>
+                        @foreach (var c in _children.OrderBy(c => c.FirstName))
+                        {
+                            <option value="@c.ChildId">@c.FirstName @c.LastName</option>
+                        }
+                    </InputSelect>
+                </div>
+
+                <div class="col-12 col-sm-6 form-group mb-2">
+                    <label>Starts</label>
+                    <InputDate Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="_formEvent.StartTime" />
+                </div>
+                <div class="col-12 col-sm-6 form-group mb-2">
+                    <label>Ends</label>
+                    <InputDate Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="_formEvent.EndTime" />
+                </div>
+
+                <div class="col-12 d-flex flex-wrap gap-3 my-1">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="pickupCheck" @bind="_formEvent.NeedsPickup" />
+                        <label class="form-check-label" for="pickupCheck"><i class="bi bi-car-front-fill me-1"></i>Needs pickup</label>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="recurCheck" @bind="_isRecurring" />
+                        <label class="form-check-label" for="recurCheck"><i class="bi bi-arrow-repeat me-1"></i>Repeats</label>
+                    </div>
+                </div>
+
+                @if (_isRecurring)
+                {
+                    <div class="col-6 form-group mb-2">
+                        <label>Every</label>
+                        <select class="form-select" @bind="_recurrenceFreq">
+                            <option value="DAILY">Day</option>
+                            <option value="WEEKLY">Week</option>
+                            <option value="MONTHLY">Month</option>
+                        </select>
+                    </div>
+                    <div class="col-6 form-group mb-2">
+                        <label>Until</label>
+                        <InputDate class="form-control" @bind-Value="_recurrenceUntil" />
+                    </div>
+                }
+
+                <div class="col-12 form-group">
+                    <label>Note</label>
+                    <InputTextArea class="form-control" rows="2" @bind-Value="_formEvent.Note" placeholder="e.g. Grandma picks up" />
+                </div>
+
+            </div>
+            <div class="mt-2 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="bi bi-check-lg me-1"></i>Save
+                </button>
+                @if (_editingEvent?.Id > 0)
+                {
+                    <button type="button" class="btn btn-danger" title="Delete" @onclick="DeleteEvent">
+                        <i class="bi bi-trash3-fill"></i>
+                    </button>
+                }
+            </div>
+        </EditForm>
+    </div>
 }
 
+<div class="soft-card calendar-card">
+<ErrorBoundary @ref="_errorBoundary">
+    <ChildContent>
+        @* Opens on month: the clearest overview on a phone *@
+        <SfSchedule TValue="ScheduleEvent" SelectedDate="@DateTime.Today" CurrentView="View.Month" Height="650px" Width="100%" ShowQuickInfo="false">
+            <ScheduleEvents TValue="ScheduleEvent"
+                            OnEventClick="OnEventClick"
+                            OnCellClick="OnCellSelect">
+            </ScheduleEvents>
+            <ScheduleViews>
+                <ScheduleView Option="View.Month"></ScheduleView>
+                <ScheduleView Option="View.Week"></ScheduleView>
+                <ScheduleView Option="View.Day"></ScheduleView>
+            </ScheduleViews>
+            <ScheduleEventSettings DataSource="@Events" AllowAdding="false" AllowEditing="false" AllowDeleting="false">
+                <Template>
+                    @{
+                        var e = context as ScheduleEvent;
+                        var kind = (e?.NeedsPickup == true) ? "pickup" : "stay";
+                        var name = (e != null && _childMap.ContainsKey(e.ChildId))
+                                    ? _childMap[e.ChildId]
+                                    : "Unknown";
+                    }
+                    <div class="custom-event-block @kind">
+                        <span>@name</span>
+                    </div>
+                </Template>
+            </ScheduleEventSettings>
+        </SfSchedule>
+    </ChildContent>
+    <ErrorContent Context="ex">
+        <div class="alert alert-danger d-flex flex-wrap align-items-center gap-2">
+            <span><strong>Calendar error:</strong> @ex.Message</span>
+            <button class="btn btn-sm btn-secondary ms-auto" @onclick="() => _errorBoundary?.Recover()">Retry</button>
+        </div>
+    </ErrorContent>
+</ErrorBoundary>
+</div>
 
-@code
-{
-    private ScheduleEvent scheduleEvent = new ();
-    // public int Id { get; set; }
-    // public string Subject { get; set; }
-    // public string Location { get; set; }
-    // public string Description { get; set; }
-    // public DateTime StartTime { get; set; }
-    // public DateTime EndTime { get; set; }
-    // public bool IsAllDay { get; set; }
-    List<ScheduleEvent> Events = new();
+<style>
+    .calendar-card { padding: 0.75rem; overflow: hidden; }
 
-    private bool _hasLoadedEvents = false;
-
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender && !_hasLoadedEvents)
-        {
-            _hasLoadedEvents = true;
-
-            try
-            {
-                Events = await EventService.GetList() ?? new List<ScheduleEvent>();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error loading events: {ex.Message}");
-                Events = new List<ScheduleEvent>();
-            }
-
-            StateHasChanged(); // Optional: triggers re-render if needed
-        }
+    /* Syncfusion: soften chrome to match the app */
+    .calendar-card .e-schedule {
+        border: 0;
+        border-radius: 18px;
+        font-family: var(--font);
+    }
+    .calendar-card .e-schedule .e-schedule-toolbar-container .e-toolbar,
+    .calendar-card .e-schedule .e-schedule-toolbar .e-toolbar-items {
+        background: var(--surface) !important;
+        border: 0;
+        box-shadow: none;
+    }
+    .calendar-card .e-schedule .e-schedule-toolbar .e-tbar-btn,
+    .calendar-card .e-schedule .e-schedule-toolbar .e-tbar-btn .e-tbar-btn-text,
+    .calendar-card .e-schedule .e-schedule-toolbar .e-icons {
+        color: var(--ink) !important;
+        font-weight: 800;
+        border-radius: 12px;
+    }
+    .calendar-card .e-schedule .e-schedule-toolbar .e-active-view .e-tbar-btn {
+        background: var(--coral-50) !important;
+    }
+    .calendar-card .e-schedule .e-schedule-toolbar .e-active-view .e-tbar-btn-text {
+        color: var(--coral-dark) !important;
+    }
+    .calendar-card .e-schedule .e-month-view .e-date-header-wrap table td,
+    .calendar-card .e-schedule .e-header-cells {
+        color: var(--muted) !important;
+        font-weight: 800;
+        background: var(--surface) !important;
+    }
+    .calendar-card .e-schedule .e-work-cells,
+    .calendar-card .e-schedule .e-date-header-wrap table td,
+    .calendar-card .e-schedule .e-time-cells-wrap table td {
+        border-color: var(--line) !important;
+    }
+    .calendar-card .e-schedule .e-work-cells:hover {
+        background: var(--coral-50) !important;
+    }
+    .calendar-card .e-schedule .e-month-view .e-current-date .e-date-header {
+        color: #fff !important;
+        background: var(--coral) !important;
+        border-radius: 999px;
+    }
+    .calendar-card .e-schedule .e-header-cells.e-current-day,
+    .calendar-card .e-schedule .e-header-cells.e-current-day .e-header-day,
+    .calendar-card .e-schedule .e-header-cells.e-current-day .e-header-date {
+        color: var(--coral-dark) !important;
+    }
+    .calendar-card .e-schedule .e-current-time,
+    .calendar-card .e-schedule .e-current-timeline,
+    .calendar-card .e-schedule .e-previous-timeline {
+        color: var(--coral-dark) !important;
+        border-color: var(--coral) !important;
+    }
+    .calendar-card .e-schedule .e-month-view .e-date-header {
+        font-weight: 800;
+        color: var(--ink-soft);
+        margin: 4px;
+        width: 26px;
+        height: 26px;
+        line-height: 26px;
+        text-align: center;
     }
 
-    private async Task HandleCellClick(Syncfusion.Blazor.Schedule.CellClickEventArgs args)
+    /* Month view: Syncfusion writes full day names that get cut off ("Sun…") on a
+       phone and ignores header templates, so hide its text and draw short names by
+       column. Week starts on Sunday (the default), so the order is fixed. */
+    .calendar-card .e-month-view .e-date-header-wrap .e-header-cells {
+        font-size: 0 !important;
+        text-align: center;
+    }
+    .calendar-card .e-month-view .e-date-header-wrap .e-header-cells > * { display: none; }
+    .calendar-card .e-month-view .e-date-header-wrap .e-header-cells::after {
+        font-size: 0.85rem;
+        font-weight: 800;
+        color: var(--muted);
+    }
+    .calendar-card .e-month-view .e-date-header-wrap .e-header-cells:nth-child(1)::after { content: "Sun"; }
+    .calendar-card .e-month-view .e-date-header-wrap .e-header-cells:nth-child(2)::after { content: "Mon"; }
+    .calendar-card .e-month-view .e-date-header-wrap .e-header-cells:nth-child(3)::after { content: "Tue"; }
+    .calendar-card .e-month-view .e-date-header-wrap .e-header-cells:nth-child(4)::after { content: "Wed"; }
+    .calendar-card .e-month-view .e-date-header-wrap .e-header-cells:nth-child(5)::after { content: "Thu"; }
+    .calendar-card .e-month-view .e-date-header-wrap .e-header-cells:nth-child(6)::after { content: "Fri"; }
+    .calendar-card .e-month-view .e-date-header-wrap .e-header-cells:nth-child(7)::after { content: "Sat"; }
+
+    /* Strip Syncfusion's default appointment color so our template color shows */
+    .e-schedule .e-appointment {
+        background: transparent !important;
+        border-color: transparent !important;
+        box-shadow: none !important;
+    }
+    .e-schedule .e-appointment .e-appointment-details {
+        padding: 0 !important;
+        height: 100%;
+    }
+
+    /* Custom event block fills the whole appointment slot */
+    .custom-event-block {
+        height: 100%;
+        width: 100%;
+        padding: 2px 8px;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 800;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+    }
+    .custom-event-block.pickup { background: var(--sky-50); color: #2F6FB0; border-left: 4px solid var(--sky); }
+    .custom-event-block.stay { background: var(--coral-50); color: #C24F42; border-left: 4px solid var(--coral); }
+</style>
+
+@code {
+    private List<ScheduleEvent> Events = new();
+    private List<Child> _children = new();
+    private Dictionary<int, string> _childMap = new();
+    private ErrorBoundary? _errorBoundary;
+
+    private bool _showForm = false;
+    private ScheduleEvent _formEvent = new();
+    private ScheduleEvent? _editingEvent;
+
+    // Recurring UI state (not stored on model directly)
+    private bool _isRecurring = false;
+    private string _recurrenceFreq = "WEEKLY";
+    private DateTime _recurrenceUntil = DateTime.Today.AddMonths(3);
+
+    protected override async Task OnInitializedAsync()
     {
-        
         try
         {
-            Console.WriteLine("Cell clicked");
-
-            var newEvent = new ScheduleEvent
-            {
-                Subject = "DaycareTime",
-                StartTime = args.StartTime,
-                EndTime = args.StartTime.AddHours(1),
-                Description = "Nap Time",
-                Location = "Home",
-                ChildId = 2
-            };
-
-            Console.WriteLine("Creating event...");
-            await EventService.Add(newEvent);
-            Console.WriteLine("Event created.");
-
-            Events = await EventService.GetList() ?? new List<ScheduleEvent>();
-            Console.WriteLine("Events loaded: " + Events.Count);
-
-            StateHasChanged();
+            Events = await EventService.GetList() ?? new();
+            _children = await ChildService.GetList() ?? new();
+            _childMap = _children.ToDictionary(c => c.ChildId, c => $"{c.FirstName} {c.LastName}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine("Runtime error: " + ex.Message);
-            Console.WriteLine("Stack trace: " + ex.StackTrace);
+            Console.WriteLine($"Error loading: {ex.Message}");
         }
     }
-}
 
-    
+    private void OnCellSelect(CellClickEventArgs args)
+    {
+        _editingEvent = null;
+        _isRecurring = false;
+        _recurrenceFreq = "WEEKLY";
+        _recurrenceUntil = DateTime.Today.AddMonths(3);
+        _formEvent = new ScheduleEvent
+        {
+            StartTime = args.StartTime,
+            EndTime = args.EndTime
+        };
+        _showForm = true;
+    }
+
+    private void OnEventClick(EventClickArgs<ScheduleEvent> args)
+    {
+        _editingEvent = args.Event;
+        _isRecurring = !string.IsNullOrEmpty(args.Event.RecurrenceRule);
+
+        if (_isRecurring && args.Event.RecurrenceRule != null)
+        {
+            // Parse freq from stored RRULE e.g. "FREQ=WEEKLY;..."
+            var freqMatch = System.Text.RegularExpressions.Regex.Match(
+                args.Event.RecurrenceRule, @"FREQ=(\w+)");
+            _recurrenceFreq = freqMatch.Success ? freqMatch.Groups[1].Value : "WEEKLY";
+
+            var untilMatch = System.Text.RegularExpressions.Regex.Match(
+                args.Event.RecurrenceRule, @"UNTIL=(\d{8})");
+            if (untilMatch.Success && DateTime.TryParseExact(
+                untilMatch.Groups[1].Value, "yyyyMMdd",
+                null, System.Globalization.DateTimeStyles.None, out var untilDate))
+                _recurrenceUntil = untilDate;
+            else
+                _recurrenceUntil = DateTime.Today.AddMonths(3);
+        }
+
+        _formEvent = new ScheduleEvent
+        {
+            Id = args.Event.Id,
+            ChildId = args.Event.ChildId,
+            Subject = args.Event.Subject,
+            Note = args.Event.Note,
+            NeedsPickup = args.Event.NeedsPickup,
+            StartTime = args.Event.StartTime,
+            EndTime = args.Event.EndTime,
+            IsAllDay = args.Event.IsAllDay,
+            RecurrenceRule = args.Event.RecurrenceRule
+        };
+        _showForm = true;
+    }
+
+    private async Task SaveEvent()
+    {
+        try
+        {
+            // Auto-set subject to child's name
+            _formEvent.Subject = _childMap.TryGetValue(_formEvent.ChildId, out var n) ? n : "Event";
+
+            // Build RRULE
+            if (_isRecurring)
+            {
+                var until = _recurrenceUntil.ToString("yyyyMMdd");
+                _formEvent.RecurrenceRule = $"FREQ={_recurrenceFreq};INTERVAL=1;UNTIL={until}T000000Z;";
+            }
+            else
+            {
+                _formEvent.RecurrenceRule = null;
+            }
+
+            if (_editingEvent?.Id > 0)
+                await EventService.Update(_formEvent.Id, _formEvent);
+            else
+                await EventService.Add(_formEvent);
+
+            Events = await EventService.GetList() ?? new();
+            CloseForm();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Save error: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteEvent()
+    {
+        if (_editingEvent == null) return;
+        try
+        {
+            await EventService.Delete(_editingEvent);
+            Events = await EventService.GetList() ?? new();
+            CloseForm();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Delete error: {ex.Message}");
+        }
+    }
+
+    private void CloseForm()
+    {
+        _showForm = false;
+        _editingEvent = null;
+        _formEvent = new();
+        _isRecurring = false;
+    }
+}

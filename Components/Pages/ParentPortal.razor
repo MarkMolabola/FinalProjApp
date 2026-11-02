@@ -1,0 +1,117 @@
+@page "/parent-portal"
+@layout Layout.MainLayout
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Parent")]
+@using FinalProjApp.Services
+@inject CustomAuthStateProvider AuthStateProvider
+@inject ICRUD<FinalProjApp.Models.Child> ChildService
+@inject ICRUD<FinalProjApp.Models.ScheduleEvent> ScheduleService
+
+<div class="page-head">
+    <div>
+        <h1>My kids</h1>
+        <p>What's coming up for your little ones.</p>
+    </div>
+</div>
+
+@if (_children == null)
+{
+    <div class="soft-card">
+        <div class="empty-state"><span class="emoji">🧸</span>Loading…</div>
+    </div>
+}
+else if (!_children.Any())
+{
+    <div class="soft-card">
+        <div class="empty-state">
+            <span class="emoji">🔍</span>
+            We couldn't find any children linked to your account.<br />
+            Please contact the daycare and we'll get you set up.
+        </div>
+    </div>
+}
+else
+{
+    @foreach (var (child, index) in _children.Select((c, i) => (c, i)))
+    {
+        var tint = Tints[index % Tints.Length];
+        var upcoming = ScheduleRules.Upcoming(_events.Where(e => e.ChildId == child.ChildId), DateTime.Now, days: 30, max: 5);
+
+        <div class="soft-card">
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <span class="avatar bubble-lg @tint" style="border-radius: 50%;">
+                    @($"{child.FirstName.FirstOrDefault()}{child.LastName.FirstOrDefault()}".ToUpperInvariant())
+                </span>
+                <div class="grow">
+                    <h3 class="mb-0">@child.FirstName @child.LastName</h3>
+                    <span class="pill @tint mt-1">
+                        <i class="bi bi-cake2-fill"></i> @Age(child.DateofBirth) · born @child.DateofBirth.ToString("MMM d, yyyy")
+                    </span>
+                </div>
+            </div>
+
+            <div class="section-label mt-0">Upcoming</div>
+            @if (!upcoming.Any())
+            {
+                <div class="empty-state py-3">Nothing scheduled in the next 30 days.</div>
+            }
+            else
+            {
+                <div class="list-stack">
+                    @foreach (var item in upcoming)
+                    {
+                        <div class="list-row">
+                            <div class="timeline-time">
+                                @DayLabel(item.Start)
+                                <small>@item.Start.ToString("h:mm tt")</small>
+                            </div>
+                            <div class="grow">
+                                <div class="title">@(string.IsNullOrWhiteSpace(item.Event.Note) ? "At daycare" : item.Event.Note)</div>
+                                <div class="sub">
+                                    @item.Start.ToString("h:mm tt") – @item.End.ToString("h:mm tt")@(string.IsNullOrEmpty(item.Event.Location) ? "" : $" · {item.Event.Location}")
+                                </div>
+                            </div>
+                            @if (item.Event.NeedsPickup)
+                            {
+                                <span class="pill tint-sky"><i class="bi bi-car-front-fill"></i> Pickup</span>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+}
+
+@code {
+    private static readonly string[] Tints = { "tint-coral", "tint-mint", "tint-sky", "tint-sun", "tint-lilac" };
+
+    private List<FinalProjApp.Models.Child>? _children;
+    private List<FinalProjApp.Models.ScheduleEvent> _events = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var currentUser = AuthStateProvider.GetCurrentUserInfo();
+        if (currentUser?.GuardianId == null)
+        {
+            _children = new();
+            return;
+        }
+
+        var allChildren = await ChildService.GetList();
+        _children = allChildren.Where(c => c.GuardianID == currentUser.GuardianId).ToList();
+
+        _events = await ScheduleService.GetList() ?? new();
+    }
+
+    private static string DayLabel(DateTime start) =>
+        start.Date == DateTime.Today ? "Today"
+        : start.Date == DateTime.Today.AddDays(1) ? "Tmrw"
+        : start.ToString("MMM d");
+
+    private static string Age(DateTime birth)
+    {
+        var months = (DateTime.Today.Year - birth.Year) * 12 + DateTime.Today.Month - birth.Month
+                     - (DateTime.Today.Day < birth.Day ? 1 : 0);
+        return months < 24 ? $"{Math.Max(0, months)} mo" : $"{months / 12} yrs";
+    }
+}

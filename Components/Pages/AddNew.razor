@@ -1,168 +1,223 @@
 ﻿@page "/AddNew"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Staff")]
 @using FinalProjApp.Models
 @using FinalProjApp.Services
 @inject ICRUD<Child> ChildService
 @inject ICRUD<Guardian> GuardianService
-<h1>Add New Child</h1>
 
-
-<style>
-    .selected-row {
-        background-color: #e0f7fa !important;
-        box-shadow: 0 0 10px rgba(0, 200, 255, 0.6);
-        transition: box-shadow 0.3s ease;
-    }
-</style>
-<style>
-    tr:hover {
-        background-color: #f1f1f1;
-    }
-</style>
- <div class="d-flex justify-content-between">
-    <div style="width: 30%;">
-
- <EditForm Model="@newChild" OnSubmit="@HandleValidSubmit">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-
-    <div class="form-group">
-        <label>First Name</label>
-        <InputText class="form-control" @bind-Value="newChild.FirstName" />
-                <ValidationMessage For="@(() => newChild.FirstName)" />
+<div class="page-head">
+    <div>
+        <h1>Kids</h1>
+        <p>@children.Count enrolled · tap a kid to edit</p>
     </div>
+</div>
 
-    <div class="form-group">
-        <label>Last Name</label>
-        <InputText class="form-control" @bind-Value="newChild.LastName" />
-                <ValidationMessage For="@(() => newChild.LastName)" />
-    </div>
+<div class="two-col">
+    <!-- ── Form ── -->
+    <div class="soft-card">
+        <div class="card-title-row">
+            <h3>@(selectedChild != null ? $"Edit {selectedChild.FirstName}" : "Add a kid")</h3>
+            @if (selectedChild != null)
+            {
+                <button type="button" class="icon-btn" title="Cancel" @onclick="ClearSelection">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            }
+        </div>
 
-    <div class="form-group">
-        <label>Date of Birth</label>
-        <InputDate class="form-control" @bind-Value="newChild.DateofBirth" />
-                <ValidationMessage For="@(() => newChild.DateofBirth)" />
-    </div>
+        @* Keyed on the selection so switching kids resets validation state *@
+        <EditForm @key="_formKey" Model="@_form" OnValidSubmit="@HandleValidSubmit" OnInvalidSubmit="@(() => _saveError = null)">
+            <DataAnnotationsValidator />
 
-    <hr />
-    <h5>Guardian Information</h5>
+            @if (_saveError != null)
+            {
+                <div class="alert alert-danger d-flex align-items-center gap-2">
+                    <i class="bi bi-emoji-frown-fill"></i>@_saveError
+                </div>
+            }
 
-    <div class="form-group">
-        <label>Full Name</label>
-        <InputText class="form-control" @bind-Value="newGuardian.FullName" />
-                <ValidationMessage For="@(() => newGuardian.FullName)" />
+            <div class="row g-2">
+                <div class="col-6 form-group mb-2">
+                    <label>First name</label>
+                    <InputText class="form-control" @bind-Value="_form.FirstName" placeholder="Ava" />
+                    <ValidationMessage For="@(() => _form.FirstName)" />
+                </div>
+                <div class="col-6 form-group mb-2">
+                    <label>Last name</label>
+                    <InputText class="form-control" @bind-Value="_form.LastName" placeholder="Martinez" />
+                    <ValidationMessage For="@(() => _form.LastName)" />
+                </div>
+            </div>
 
-    </div>
+            <div class="form-group">
+                <label>Date of birth</label>
+                <InputDate class="form-control" @bind-Value="_form.DateofBirth" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                <ValidationMessage For="@(() => _form.DateofBirth)" />
+            </div>
 
-    <div class="form-group">
-        <label>Phone Number</label>
-        <InputNumber class="form-control" @bind-Value="newGuardian.PhoneNumber" />
-                <ValidationMessage For="@(() => newGuardian.PhoneNumber)" />
-    </div>
+            <div class="section-label"><i class="bi bi-house-heart-fill me-1"></i>Guardian</div>
 
-    <div class="form-group">
-        <label>Address</label>
-        <InputText class="form-control" @bind-Value="newGuardian.Address" />
-                <ValidationMessage For="@(() => newGuardian.Address)" />
+            <div class="form-group">
+                <label>Full name</label>
+                <InputText class="form-control" @bind-Value="_form.GuardianName" placeholder="Maria Martinez" />
+                <ValidationMessage For="@(() => _form.GuardianName)" />
+            </div>
 
-    </div>
-    
-    <div class="d-flex gap-2 mt-3">
-        <button type="submit" class="btn btn-primary">Add / Update Child</button>
+            <div class="form-group">
+                <label>Phone number</label>
+                <InputText class="form-control" type="tel" @bind-Value="_form.Phone" placeholder="(555) 123-4567" />
+                <ValidationMessage For="@(() => _form.Phone)" />
+            </div>
 
-        @if (selectedChild != null)
+            <div class="form-group">
+                <label>Address</label>
+                <InputText class="form-control" @bind-Value="_form.Address" placeholder="123 Sunshine Lane" />
+                <ValidationMessage For="@(() => _form.Address)" />
+            </div>
+
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                <button type="submit" class="btn btn-primary flex-grow-1">
+                    <i class="bi @(selectedChild != null ? "bi-check-lg" : "bi-plus-lg") me-1"></i>
+                    @(selectedChild != null ? "Save changes" : "Add kid")
+                </button>
+
+                @if (selectedChild != null)
                 {
-                    <button type="button" class="btn btn-secondary" @onclick="ClearSelection">Cancel</button>
-                    <button type="button" class="btn btn-danger" @onclick="DeleteSelected">Delete</button>
-                }
-    </div>
-
-</EditForm>  
-
-    </div>
-    <div style="width: 65%;">
-        <h4>Existing Children</h4>
-        @if (children != null && children.Any())
-        {
-            <table class="table table-striped">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>First Name</th>
-                        <th>Last Name</th>
-                        <th>DOB</th>
-                        <th>Guardian</th>
-                        <th>Phone Number</th>
-                        <th>Address</th>
-
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var child in children)
+                    @if (_confirmDelete)
                     {
-                        var guardian =GuardianService.GetbyID(child.GuardianID);
-                        <tr @onclick="@(() => SelectChild(child))"
-                            class="@(selectedChild?.ChildId == child.ChildId ? "selected-row" : "")"
-                            style="cursor:pointer;">
-
-                            <td>@child.ChildId</td>
-                            <td>@child.FirstName</td>
-                            <td>@child.LastName</td>
-                            <td>@child.DateofBirth.ToShortDateString()</td>
-                            <td>@child.Guardian.FullName</td>
-                            <td>@child.Guardian.PhoneNumber</td>
-                            <td>@child.Guardian.Address</td>
-                        </tr>
+                        <button type="button" class="btn btn-danger" @onclick="DeleteSelected">Yes, remove</button>
+                        <button type="button" class="btn btn-secondary" @onclick="() => _confirmDelete = false">Keep</button>
                     }
-                </tbody>
-            </table>
+                    else
+                    {
+                        <button type="button" class="btn btn-danger" @onclick="() => _confirmDelete = true">
+                            <i class="bi bi-trash3-fill"></i>
+                        </button>
+                    }
+                }
+            </div>
+        </EditForm>
+    </div>
+
+    <!-- ── List ── -->
+    <div class="soft-card">
+        <div class="card-title-row">
+            <h3>Enrolled</h3>
+            <span class="pill tint-coral">@children.Count @(children.Count == 1 ? "kid" : "kids")</span>
+        </div>
+
+        @if (children.Any())
+        {
+            <div class="search-box mb-3">
+                <i class="bi bi-search"></i>
+                <input class="form-control" placeholder="Search kids or guardians" @bind="_search" @bind:event="oninput" />
+            </div>
+
+            <div class="list-stack">
+                @foreach (var child in Filtered())
+                {
+                    var guardian = GuardianOf(child);
+                    <div class="list-row clickable @(selectedChild?.ChildId == child.ChildId ? "selected" : "")"
+                         @onclick="@(() => SelectChild(child))">
+                        <span class="avatar @AvatarTint(child.ChildId)">@Initials(child)</span>
+                        <div class="grow">
+                            <div class="title">@child.FirstName @child.LastName</div>
+                            <div class="sub">
+                                <i class="bi bi-house-heart me-1"></i>@(guardian?.FullName ?? "No guardian")
+                                @if (!string.IsNullOrWhiteSpace(guardian?.PhoneNumber))
+                                {
+                                    <span> · @FormatPhone(guardian.PhoneNumber)</span>
+                                }
+                            </div>
+                        </div>
+                        <span class="pill tint-sun"><i class="bi bi-cake2-fill"></i> @Age(child.DateofBirth)</span>
+                    </div>
+                }
+            </div>
+
+            @if (!Filtered().Any())
+            {
+                <div class="empty-state">No kids match "@_search".</div>
+            }
         }
         else
         {
-            <p>No children found.</p>
+            <div class="empty-state">
+                <span class="emoji">🧸</span>
+                No kids yet. Add the first one with the form.
+            </div>
         }
     </div>
 </div>
 
 @code {
-    private Child newChild = new()
-    {
-     DateofBirth = DateTime.Today
-    };
-    private Guardian newGuardian = new();
+    private static readonly string[] Tints = { "tint-coral", "tint-mint", "tint-sky", "tint-sun", "tint-lilac" };
+
+    private KidForm _form = new();
+    private int _formKey; // bumped to rebuild the EditForm (and its validation state)
+    private string? _saveError;
     private List<Child> children = new();
+    private Dictionary<Guid, Guardian> guardians = new();
 
     private Child? selectedChild;
-    private Guardian? selectedGuardian;
+    private string _search = "";
+    private bool _confirmDelete;
 
-    private async void SelectChild(Child child)
+    private IEnumerable<Child> Filtered()
+    {
+        var q = _search.Trim();
+        var list = children.OrderBy(c => c.FirstName).ThenBy(c => c.LastName);
+        return q.Length == 0
+            ? list
+            : list.Where(c => $"{c.FirstName} {c.LastName} {GuardianOf(c)?.FullName}"
+                .Contains(q, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private Guardian? GuardianOf(Child child) => guardians.GetValueOrDefault(child.GuardianID);
+
+    private static string Initials(Child c) =>
+        $"{c.FirstName?.FirstOrDefault()}{c.LastName?.FirstOrDefault()}".ToUpperInvariant();
+
+    private static string AvatarTint(int childId) => Tints[Math.Abs(childId) % Tints.Length];
+
+    /// <summary>"5551234567" → "(555) 123-4567"; anything else is shown as typed.</summary>
+    private static string FormatPhone(string phone)
+    {
+        var digits = new string(phone.Where(char.IsDigit).ToArray());
+        if (digits.Length == 11 && digits[0] == '1') digits = digits[1..];
+        return digits.Length == 10 ? $"({digits[..3]}) {digits[3..6]}-{digits[6..]}" : phone;
+    }
+
+    private static string Age(DateTime birth)
+    {
+        var months = (DateTime.Today.Year - birth.Year) * 12 + DateTime.Today.Month - birth.Month
+                     - (DateTime.Today.Day < birth.Day ? 1 : 0);
+        return months < 24 ? $"{Math.Max(0, months)} mo" : $"{months / 12} yrs";
+    }
+
+    private async Task LoadAsync()
+    {
+        children = await ChildService.GetList() ?? new List<Child>();
+        guardians = (await GuardianService.GetList() ?? new List<Guardian>())
+            .ToDictionary(g => g.GuardianId);
+    }
+
+    private void SelectChild(Child child)
     {
         selectedChild = child;
-        newChild = new Child
-        {
-            FirstName = child.FirstName,
-            LastName = child.LastName,
-            DateofBirth = child.DateofBirth,
-            GuardianID = child.GuardianID
-        };
-
-        selectedGuardian = await GuardianService.GetbyID(child.GuardianID);
-        if (selectedGuardian != null)
-        {
-            newGuardian = new Guardian
-            {
-                FullName = selectedGuardian.FullName,
-                Address = selectedGuardian.Address,
-                PhoneNumber = selectedGuardian.PhoneNumber,
-                GuardianId = selectedGuardian.GuardianId
-            };
-        }
+        _confirmDelete = false;
+        _saveError = null;
+        _form = KidForm.From(child, GuardianOf(child));
+        _formKey++;
     }
+
     private void ClearSelection()
     {
         selectedChild = null;
-        selectedGuardian = null;
-        newChild = new() { DateofBirth = DateTime.Today };
-        newGuardian = new();
+        _confirmDelete = false;
+        _saveError = null;
+        _form = new();
+        _formKey++;
     }
 
     private async Task DeleteSelected()
@@ -175,12 +230,8 @@
                 await ChildService.Delete(selectedChild);
                 await GuardianService.Delete(tempGuardian);
 
-                selectedChild = null;
-                selectedGuardian = null;
-                newChild = new() { DateofBirth = DateTime.Today };
-                newGuardian = new();
-
-                children = await ChildService.GetList() ?? new List<Child>();
+                ClearSelection();
+                await LoadAsync();
             }
             catch (Exception ex)
             {
@@ -188,87 +239,60 @@
             }
         }
     }
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            children = await ChildService.GetList() ?? new List<Child>();
+            await LoadAsync();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error loading children: {ex.Message}");
             children = new List<Child>(); // fallback to empty list
         }
-
-
     }
 
-
+    /// <summary>Only runs once every field passes validation.</summary>
     private async Task HandleValidSubmit()
     {
-        Console.WriteLine("HandleValidSubmit triggered");
+        _saveError = null;
         try
         {
-            //update existing
-            if (selectedChild != null && selectedGuardian != null)
+            var guardian = new Guardian
             {
+                FullName = _form.GuardianName.Trim(),
+                PhoneNumber = _form.Phone.Trim(),
+                Address = _form.Address.Trim()
+            };
+            var child = new Child
+            {
+                FirstName = _form.FirstName.Trim(),
+                LastName = _form.LastName.Trim(),
+                DateofBirth = _form.DateofBirth
+            };
 
-                selectedGuardian.FullName = newGuardian.FullName;
-                selectedGuardian.Address = newGuardian.Address;
-                selectedGuardian.PhoneNumber = newGuardian.PhoneNumber;
-
-                selectedChild.FirstName = newChild.FirstName;
-                selectedChild.LastName = newChild.LastName;
-                selectedChild.DateofBirth = newChild.DateofBirth;
-
-                selectedGuardian = await GuardianService.GetbyID(newChild.GuardianID);
-                await GuardianService.Update(selectedGuardian.GuardianId, selectedGuardian);
-                await ChildService.Update(selectedChild.ChildId, selectedChild);
-
+            if (selectedChild != null)
+            {
+                // Update copies these fields onto the stored kid and guardian
+                guardian.GuardianId = child.GuardianID = selectedChild.GuardianID;
+                await GuardianService.Update(guardian.GuardianId, guardian);
+                await ChildService.Update(selectedChild.ChildId, child);
             }
             else
             {
-                // Add new
-                var ID = Guid.NewGuid();
-                var tempGuardian = new Guardian
-                {
-                    FullName = newGuardian.FullName,
-                    Address = newGuardian.Address,
-                    PhoneNumber = newGuardian.PhoneNumber,
-                    GuardianId = ID
-                };
-
-                var tempChild = new Child
-                {
-                    FirstName = newChild.FirstName,
-                    LastName = newChild.LastName,
-                    DateofBirth = newChild.DateofBirth,
-                    GuardianID = ID
-                };
-
-                await GuardianService.Add(tempGuardian);
-                await ChildService.Add(tempChild);
+                guardian.GuardianId = child.GuardianID = Guid.NewGuid();
+                await GuardianService.Add(guardian);
+                await ChildService.Add(child);
             }
 
-
-
-            newChild = new() { DateofBirth = DateTime.Today }; // reset form
-            newGuardian = new(); // reset form
-            selectedChild = null;
-            selectedGuardian = null;
-
-
-            children = await ChildService.GetList() ?? new List<Child>();  // refresh grid
-            
-
-            // Navigation.NavigateTo("/children");
+            ClearSelection(); // reset form
+            await LoadAsync(); // refresh list
         }
         catch (Exception ex)
         {
+            _saveError = "Couldn't save. Please try again.";
             Console.WriteLine($"Error: {ex.Message}");
         }
-        
     }
-
-
-} 
+}

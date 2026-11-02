@@ -15,13 +15,16 @@ namespace FinalProjApp.Data
         public DbSet<Child> children { get; set; }
         public DbSet<Guardian> guardian { get; set; }
         public DbSet<ScheduleEvent> scheduleEvents { get; set; }
+        public DbSet<AppUser> Users { get; set; }
+        public DbSet<Photo> Photos { get; set; }
         
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlite("Data Source=C:\\DATA\\DaycareSystem.db");
+                var dbPath = Path.Combine(FileSystem.AppDataDirectory, "DaycareSystem.db");
+                optionsBuilder.UseSqlite($"Data Source={dbPath}");
             }
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -30,7 +33,7 @@ namespace FinalProjApp.Data
             {
                 GuardianId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
                 FullName = "MARk M",
-                PhoneNumber = 1234567890,
+                PhoneNumber = "1234567890",
                 Address = "123 Main"
                 });
 
@@ -46,8 +49,8 @@ namespace FinalProjApp.Data
             {
                 Id = 1,
                 Subject = "Soccer Practice",
-                StartTime = new DateTime(2025, 10, 9, 16, 0, 0),
-                EndTime = new DateTime(2025, 10, 9, 17, 0, 0),
+                StartTime = new DateTime(2026, 3, 28, 16, 0, 0),
+                EndTime = new DateTime(2026, 3, 28, 17, 0, 0),
                 Description = "Weekly soccer practice",
                 Location = "Community Park",
                 ChildId = 1

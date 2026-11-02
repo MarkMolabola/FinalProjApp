@@ -15,8 +15,12 @@ namespace FinalProjApp.Models
         public Guid GuardianId { get; set; }
         [Required]
         public string FullName { get; set; }
+        // Text, not a number: 10-digit numbers overflow an int and lose formatting.
+        // Older databases still have an INTEGER column; SQLite stores this text there fine.
         [Required]
-        public int PhoneNumber { get; set; } //change to string in the future 
+        [Phone(ErrorMessage = "Enter a valid phone number.")]
+        [MaxLength(25)]
+        public string PhoneNumber { get; set; } = "";
         [Required]
         public string Address { get; set; }
 
