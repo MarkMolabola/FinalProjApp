@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!--
+    The web app: serves the shared pages in a browser (Blazor Server), owns the
+    real database, and (next) the API the phone app will call.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>FinalProjApp.Web</RootNamespace>
+    <UserSecretsId>calybear-web-6f2a9c1e</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FinalProjApp.Shared\FinalProjApp.Shared.csproj" />
+    <ProjectReference Include="..\FinalProjApp.Data\FinalProjApp.Data.csproj" />
+  </ItemGroup>
+
+</Project>

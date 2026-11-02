@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Caly Bear</title>
+    <base href="/" />
+    <ResourcePreloader />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="_content/Syncfusion.Blazor/styles/bootstrap5.css" />
+    <link rel="stylesheet" href="_content/Syncfusion.Blazor/styles/material.css" />
+    <!-- Shared styles live in FinalProjApp.Shared (served from _content/) -->
+    <link rel="stylesheet" href="@Assets["_content/FinalProjApp.Shared/css/bootstrap/bootstrap.min.css"]" />
+    <link rel="stylesheet" href="@Assets["_content/FinalProjApp.Shared/css/app.css"]" />
+    <link rel="stylesheet" href="@Assets["FinalProjApp.Web.styles.css"]" />
+    <ImportMap />
+    <script src="_content/Syncfusion.Blazor/scripts/syncfusion-blazor.min.js"></script>
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+
+<body>
+    <Routes @rendermode="InteractiveServer" />
+    <ReconnectModal />
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>
