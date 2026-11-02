@@ -26,14 +26,15 @@ namespace FinalProjApp.Web.Services
             _nav = nav;
         }
 
-        public async Task<string?> SignInAsync(string email, string password)
+        public async Task<string?> SignInAsync(string email, string password, string? returnUrl = null)
         {
             var user = await _accounts.CheckPasswordAsync(email, password);
             if (user == null) return "That email and password don't match.";
 
             var ticket = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
             _tickets.Set(TicketKey(ticket), user, TicketLifetime);
-            _nav.NavigateTo($"/account/signin?ticket={ticket}", forceLoad: true);
+            var next = Uri.EscapeDataString(AuthClaims.AfterSignIn(user.Role, returnUrl));
+            _nav.NavigateTo($"/account/signin?ticket={ticket}&returnUrl={next}", forceLoad: true);
             return null;
         }
 

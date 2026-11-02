@@ -98,14 +98,16 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 
 // Completes a sign-in started by WebAuthService: trade the one-time ticket for a cookie
-app.MapGet("/account/signin", async (HttpContext http, IMemoryCache tickets, string? ticket) =>
+app.MapGet("/account/signin", async (HttpContext http, IMemoryCache tickets, string? ticket, string? returnUrl) =>
 {
     var user = WebAuthService.RedeemTicket(tickets, ticket);
     if (user == null) return Results.Redirect("/login");
 
     var scheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    await http.SignInAsync(scheme, AuthClaims.CreatePrincipal(user, scheme));
-    return Results.Redirect(AuthClaims.LandingPage(user.Role));
+    // Persistent, so closing the browser doesn't sign you out (expires per the cookie settings)
+    await http.SignInAsync(scheme, AuthClaims.CreatePrincipal(user, scheme),
+        new AuthenticationProperties { IsPersistent = true });
+    return Results.Redirect(AuthClaims.AfterSignIn(user.Role, returnUrl));
 });
 
 app.MapGet("/account/signout", async (HttpContext http) =>

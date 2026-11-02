@@ -7,8 +7,11 @@ namespace FinalProjApp.Services
     /// </summary>
     public interface IAuthService
     {
-        /// <summary>Returns null when signed in, otherwise a message to show.</summary>
-        Task<string?> SignInAsync(string email, string password);
+        /// <summary>
+        /// Returns null when signed in, otherwise a message to show. On success the user
+        /// goes to <paramref name="returnUrl"/> (a page on this site) or their landing page.
+        /// </summary>
+        Task<string?> SignInAsync(string email, string password, string? returnUrl = null);
 
         Task SignOutAsync();
     }

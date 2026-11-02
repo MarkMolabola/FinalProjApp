@@ -24,7 +24,7 @@ namespace FinalProjApp.Services
             _nav = nav;
         }
 
-        public async Task<string?> SignInAsync(string email, string password)
+        public async Task<string?> SignInAsync(string email, string password, string? returnUrl = null)
         {
             HttpResponseMessage response;
             try
@@ -50,7 +50,7 @@ namespace FinalProjApp.Services
                 PasswordHash = "",
                 Salt = ""
             });
-            _nav.NavigateTo(AuthClaims.LandingPage(login.Role));
+            _nav.NavigateTo(AuthClaims.AfterSignIn(login.Role, returnUrl));
             return null;
         }
 

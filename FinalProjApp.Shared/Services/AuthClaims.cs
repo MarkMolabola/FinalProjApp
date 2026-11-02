@@ -43,5 +43,12 @@ namespace FinalProjApp.Services
 
         /// <summary>Where each role lands after signing in.</summary>
         public static string LandingPage(string role) => role == "Parent" ? "/parent-portal" : "/";
+
+        /// <summary>Where to go after signing in: the requested page if it's on this site, else the landing page.</summary>
+        public static string AfterSignIn(string role, string? returnUrl) =>
+            returnUrl is { Length: > 1 } url && url.StartsWith('/') && !url.StartsWith("//") && !url.StartsWith("/\\")
+                && !url.StartsWith("/login", StringComparison.OrdinalIgnoreCase)
+                ? url
+                : LandingPage(role);
     }
 }

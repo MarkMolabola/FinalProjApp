@@ -49,6 +49,9 @@
 </div>
 
 @code {
+    /// <summary>Set by the "please sign in" redirect, so you end up where you were going.</summary>
+    [SupplyParameterFromQuery] public string? ReturnUrl { get; set; }
+
     private LoginModel _model = new();
     private string _errorMessage = "";
     private bool _loading = false;
@@ -67,7 +70,7 @@
         _loading = true;
 
         // On success this takes the user to their landing page
-        var error = await Auth.SignInAsync(_model.Email, _model.Password);
+        var error = await Auth.SignInAsync(_model.Email, _model.Password, ReturnUrl);
         if (error != null)
         {
             _errorMessage = error;
