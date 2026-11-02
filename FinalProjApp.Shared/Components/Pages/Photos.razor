@@ -1,4 +1,6 @@
 @page "/photos"
+@* Photos of the kids are for signed-in families and staff only, on web and phone *@
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
 @using FinalProjApp.Services
 @inject IPhotoService PhotoService
 @inject AuthenticationStateProvider AuthState

@@ -72,8 +72,6 @@
     <ItemGroup>
         <!-- Pages, styles and models are shared with the web app -->
         <ProjectReference Include="..\FinalProjApp.Shared\FinalProjApp.Shared.csproj" />
-        <!-- Local database for now; replaced by calls to the web API in a later step -->
-        <ProjectReference Include="..\FinalProjApp.Data\FinalProjApp.Data.csproj" />
     </ItemGroup>
 
 </Project>
