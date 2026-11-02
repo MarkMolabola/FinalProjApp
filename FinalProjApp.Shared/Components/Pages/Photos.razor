@@ -1,6 +1,7 @@
 @page "/photos"
 @using FinalProjApp.Services
 @inject IPhotoService PhotoService
+@inject AuthenticationStateProvider AuthState
 
 <div class="page-head">
     <div>
@@ -9,14 +10,17 @@
     </div>
 </div>
 
-<label class="upload-drop">
-    <span class="bubble bubble-lg tint-coral"><i class="bi bi-cloud-arrow-up-fill"></i></span>
-    <span class="grow">
-        <span class="title d-block">@(_uploading ? "Uploading…" : "Add photos")</span>
-        <span class="sub d-block">Tap to choose one or more pictures</span>
-    </span>
-    <InputFile OnChange="HandleFileUpload" multiple accept="image/*" />
-</label>
+@* Only admins add photos; everyone else just looks *@
+<AuthorizeView Roles="Admin">
+    <label class="upload-drop">
+        <span class="bubble bubble-lg tint-coral"><i class="bi bi-cloud-arrow-up-fill"></i></span>
+        <span class="grow">
+            <span class="title d-block">@(_uploading ? "Uploading…" : "Add photos")</span>
+            <span class="sub d-block">Tap to choose one or more pictures</span>
+        </span>
+        <InputFile OnChange="HandleFileUpload" multiple accept="image/*" />
+    </label>
+</AuthorizeView>
 
 @if (ImageUrls.Any())
 {
@@ -32,7 +36,7 @@ else
     <div class="soft-card mt-3">
         <div class="empty-state">
             <span class="emoji">📸</span>
-            No photos yet. Add the first one!
+            No photos yet. Check back soon!
         </div>
     </div>
 }
@@ -55,6 +59,9 @@ else
 
     private async Task HandleFileUpload(InputFileChangeEventArgs e)
     {
+        // The upload box is admin-only, but check again in case someone gets here anyway
+        if (!(await AuthState.GetAuthenticationStateAsync()).User.IsInRole("Admin")) return;
+
         _uploading = true;
         try
         {

@@ -1,10 +1,13 @@
 using FinalProjApp.Data;
 using FinalProjApp.Models;
 using FinalProjApp.Services;
+using FinalProjApp.Web.Api;
 using FinalProjApp.Web.Components;
 using FinalProjApp.Web.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Syncfusion.Blazor;
@@ -36,8 +39,29 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.AccessDeniedPath = "/";
         options.ExpireTimeSpan = TimeSpan.FromDays(7);
         options.SlidingExpiration = true;
+    })
+    // The phone app's API calls carry a token instead (see Api/TokenService.cs)
+    .AddJwtBearer(options =>
+    {
+        options.MapInboundClaims = false;
+        options.TokenValidationParameters = new()
+        {
+            ValidIssuer = TokenService.Issuer,
+            ValidAudience = TokenService.Audience,
+            IssuerSigningKey = TokenService.SigningKey(builder.Configuration),
+            NameClaimType = ClaimTypes.Name,
+            RoleClaimType = ClaimTypes.Role
+        };
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // API endpoints accept tokens only, never the browser cookie
+    var bearer = JwtBearerDefaults.AuthenticationScheme;
+    options.AddPolicy(DaycareApi.SignedIn, p => p.AddAuthenticationSchemes(bearer).RequireAuthenticatedUser());
+    options.AddPolicy(DaycareApi.StaffOnly, p => p.AddAuthenticationSchemes(bearer).RequireRole("Admin", "Staff"));
+    options.AddPolicy(DaycareApi.AdminOnly, p => p.AddAuthenticationSchemes(bearer).RequireRole("Admin"));
+});
+builder.Services.AddSingleton<TokenService>();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<UserAccounts>();
@@ -79,6 +103,8 @@ app.MapGet("/account/signout", async (HttpContext http) =>
     await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
     return Results.Redirect("/login");
 });
+
+app.MapDaycareApi();
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode()
