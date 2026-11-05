@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Caly the French bulldog">
+  <defs>
+    <clipPath id="head">
+      <path d="M60 30 C90 30 114 46 114 72 C114 94 96 106 60 106 C24 106 6 94 6 72 C6 46 30 30 60 30 Z"/>
+    </clipPath>
+  </defs>
+
+  <!-- Big rounded bat ears -->
+  <path d="M15 58 C6 40 3 20 10 10 C15 3 26 4 34 10 C43 17 50 26 54 36 Z" fill="#63626F"/>
+  <path d="M105 58 C114 40 117 20 110 10 C105 3 94 4 86 10 C77 17 70 26 66 36 Z" fill="#63626F"/>
+  <path d="M21 47 C15 35 12 23 16 17 C19 13 25 14 30 18 C36 23 41 29 44 36 Z" fill="#F5B5BC"/>
+  <path d="M99 47 C105 35 108 23 104 17 C101 13 95 14 90 18 C84 23 79 29 76 36 Z" fill="#F5B5BC"/>
+
+  <!-- Wide head with a white blaze between the eye patches -->
+  <path d="M60 30 C90 30 114 46 114 72 C114 94 96 106 60 106 C24 106 6 94 6 72 C6 46 30 30 60 30 Z" fill="#63626F"/>
+  <path d="M52 20 L68 20 C68 38 72 50 82 62 L82 72 L38 72 L38 62 C48 50 52 38 52 20 Z" fill="#FFFFFF" clip-path="url(#head)"/>
+
+  <!-- Droopy jowls and chin -->
+  <ellipse cx="60" cy="102" rx="17" ry="11" fill="#FBD3D3"/>
+  <ellipse cx="40" cy="84" rx="27" ry="21" fill="#FFFFFF"/>
+  <ellipse cx="80" cy="84" rx="27" ry="21" fill="#FFFFFF"/>
+  <ellipse cx="33" cy="88" rx="12" ry="8.5" fill="#FBD3D3"/>
+
+  <!-- Wide-set eyes -->
+  <circle cx="31" cy="60" r="8.5" fill="#2B2733"/>
+  <circle cx="89" cy="60" r="8.5" fill="#2B2733"/>
+  <circle cx="34" cy="57" r="3" fill="#FFFFFF"/>
+  <circle cx="92" cy="57" r="3" fill="#FFFFFF"/>
+
+  <!-- Wrinkle, flat nose and smile -->
+  <path d="M46 57 C53 53 67 53 74 57" stroke="#DAD6DF" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M47 67 C47 62 53 60.5 60 60.5 C67 60.5 73 62 73 67 C73 72 66 76 60 76 C54 76 47 72 47 67 Z" fill="#2B2733"/>
+  <path d="M60 76 L60 86" stroke="#2B2733" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+  <path d="M38 91 C46 98 55 96 60 86 C65 96 74 98 82 91" stroke="#2B2733" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

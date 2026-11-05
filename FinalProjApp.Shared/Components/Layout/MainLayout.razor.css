@@ -35,8 +35,9 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.35rem;
 }
+
+.brand-logo img { width: 32px; height: 32px; }
 
 .brand-name {
     font-weight: 900;

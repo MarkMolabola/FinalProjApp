@@ -663,9 +663,10 @@ a, .btn-link { color: var(--coral-dark); }
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 2.4rem;
     box-shadow: var(--shadow-pop);
 }
+
+.brand-mark img { width: 58px; height: 58px; }
 
 .back-link {
     display: inline-flex;
