@@ -22,7 +22,7 @@ namespace FinalProjApp
 
             builder.Services.AddMauiBlazorWebView();
 
-            Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense("Ngo9BigBOggjHTQxAR8/V1JFaF5cXGRCf1FpRmJGdld5fUVHYVZUTXxaS00DNHVRdkdmWH9ccHVSR2ZcVEd/WktWYEg=");
+            SyncfusionLicense.Register();
             builder.Services.AddSyncfusionBlazor();
 
             // All data lives in the web app; the phone reads and writes it through the API

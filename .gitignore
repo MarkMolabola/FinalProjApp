@@ -366,3 +366,6 @@ DaycareSystem.db*
 
 # Web app data folder (SQLite database lives here locally)
 App_Data/
+
+# Syncfusion license key for the phone app (see FinalProjApp/SyncfusionLicense.cs)
+SyncfusionLicense.local.cs

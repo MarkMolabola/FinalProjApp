@@ -1,0 +1,8 @@
+// Copy this file to SyncfusionLicense.local.cs and paste in your key. Git ignores the copy.
+namespace FinalProjApp
+{
+    internal static partial class SyncfusionLicense
+    {
+        static partial void LoadKey(ref string? key) => key = "YOUR_SYNCFUSION_LICENSE_KEY";
+    }
+}
