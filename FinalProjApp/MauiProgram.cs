@@ -33,6 +33,7 @@ namespace FinalProjApp
             builder.Services.AddScoped<IPhotoService, ApiPhotoService>();
             builder.Services.AddScoped<IFamilyService, ApiFamilyService>();
             builder.Services.AddScoped<IInviteService, ApiInviteService>();
+            builder.Services.AddScoped<IScheduleRequestService, ApiScheduleRequestService>();
 
             builder.Services.AddAuthorizationCore();
             builder.Services.AddScoped<CustomAuthStateProvider>();

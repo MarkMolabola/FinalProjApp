@@ -104,11 +104,47 @@ namespace FinalProjApp.Services.Api
         }
 
         /// <summary>Turns a 409 (e.g. "A kid needs at least one guardian.") into the same error the web app shows.</summary>
-        private static async Task EnsureOkAsync(HttpResponseMessage response)
+        internal static async Task EnsureOkAsync(HttpResponseMessage response)
         {
             if (response.StatusCode == System.Net.HttpStatusCode.Conflict)
                 throw new InvalidOperationException((await response.Content.ReadFromJsonAsync<string>()) ?? "That change isn't allowed.");
             response.EnsureSuccessStatusCode();
+        }
+    }
+
+    /// <summary>Schedule requests. The server works out who's asking from the sign-in token.</summary>
+    public class ApiScheduleRequestService : IScheduleRequestService
+    {
+        private readonly ApiClient _api;
+        public ApiScheduleRequestService(ApiClient api) => _api = api;
+
+        public event Action? Reviewed;
+
+        public Task<List<ScheduleRequest>> GetMineAsync(AppUser parent) =>
+            _api.GetAsync<List<ScheduleRequest>>("api/schedule-requests/mine");
+
+        public Task<List<ScheduleRequest>> GetPendingAsync(AppUser admin) =>
+            _api.GetAsync<List<ScheduleRequest>>("api/schedule-requests");
+
+        public async Task<int> CountPendingAsync(AppUser admin) => (await GetPendingAsync(admin)).Count;
+
+        public async Task<ScheduleRequest> SubmitAsync(AppUser parent, ScheduleRequest request)
+        {
+            var response = await _api.PostAsync("api/schedule-requests", request);
+            await ApiFamilyService.EnsureOkAsync(response);
+            return (await response.Content.ReadFromJsonAsync<ScheduleRequest>())!;
+        }
+
+        public async Task ApproveAsync(AppUser admin, int requestId)
+        {
+            await ApiFamilyService.EnsureOkAsync(await _api.PostAsync($"api/schedule-requests/{requestId}/approve", new { }));
+            Reviewed?.Invoke();
+        }
+
+        public async Task DeclineAsync(AppUser admin, int requestId, string? reason)
+        {
+            await ApiFamilyService.EnsureOkAsync(await _api.PostAsync($"api/schedule-requests/{requestId}/decline", new DeclineScheduleRequest { Reason = reason }));
+            Reviewed?.Invoke();
         }
     }
 

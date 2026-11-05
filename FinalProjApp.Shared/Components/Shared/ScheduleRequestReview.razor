@@ -1,0 +1,136 @@
+@using FinalProjApp.Models
+@using FinalProjApp.Services
+@inject AuthenticationStateProvider AuthState
+@inject IScheduleRequestService Requests
+
+@if (_message != null)
+{
+    <div class="alert alert-danger">@_message</div>
+}
+
+@if (_pending.Any())
+{
+    <div class="soft-card mb-3">
+        <div class="card-title-row">
+            <h3>Requests to review</h3>
+            <span class="pill tint-sun">@_pending.Count waiting</span>
+        </div>
+        <div class="list-stack">
+            @foreach (var request in _pending)
+            {
+                <div class="list-row flex-wrap">
+                    <div class="grow">
+                        <div class="title">@request.ChildName</div>
+                        <div class="sub">
+                            @request.StartTime.ToString("ddd, MMM d, h:mm tt") – @request.EndTime.ToString("h:mm tt")
+                        </div>
+                        <div class="sub">
+                            From @request.RequestedByEmail@(string.IsNullOrWhiteSpace(request.Note) ? "" : $" · {request.Note}")
+                        </div>
+                    </div>
+                    <div class="d-flex flex-column align-items-end gap-1">
+                        @if (request.NeedsPickup)
+                        {
+                            <span class="pill tint-sky"><i class="bi bi-car-front-fill"></i> Pickup</span>
+                        }
+                        @if (!string.IsNullOrEmpty(request.RecurrenceRule))
+                        {
+                            <span class="pill tint-lilac"><i class="bi bi-arrow-repeat"></i> Repeats</span>
+                        }
+                    </div>
+
+                    @if (_decliningId == request.Id)
+                    {
+                        <div class="w-100 mt-2">
+                            <input class="form-control mb-2" maxlength="500" placeholder="Reason for the parent (optional)" @bind="_reason" />
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-danger btn-sm" disabled="@_busy" @onclick="@(() => DeclineAsync(request.Id))">Decline request</button>
+                                <button type="button" class="btn btn-secondary btn-sm" disabled="@_busy" @onclick="@(() => _decliningId = null)">Keep it</button>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="w-100 d-flex gap-2 mt-2">
+                            <button type="button" class="btn btn-primary btn-sm" disabled="@_busy" @onclick="@(() => ApproveAsync(request.Id))">
+                                <i class="bi bi-check-lg me-1"></i>Confirm
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-sm" disabled="@_busy" @onclick="@(() => StartDecline(request.Id))">Decline</button>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>Runs after a request is confirmed, so the page can show the new event.</summary>
+    [Parameter] public EventCallback OnConfirmed { get; set; }
+
+    private List<ScheduleRequest> _pending = new();
+    private AppUser? _user;
+    private int? _decliningId;
+    private string? _reason;
+    private bool _busy;
+    private string? _message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthState.GetAuthenticationStateAsync()).User.ToAppUser();
+        if (_user != null) await RunAsync(() => Task.CompletedTask);
+    }
+
+    private void StartDecline(int id)
+    {
+        _decliningId = id;
+        _reason = null;
+    }
+
+    private async Task ApproveAsync(int id)
+    {
+        if (await RunAsync(() => Requests.ApproveAsync(_user!, id)))
+            await OnConfirmed.InvokeAsync();
+    }
+
+    private async Task DeclineAsync(int id)
+    {
+        await RunAsync(() => Requests.DeclineAsync(_user!, id, _reason));
+        _decliningId = null;
+    }
+
+    /// <summary>Does the action, then refreshes the list. A problem shows as a message.</summary>
+    private async Task<bool> RunAsync(Func<Task> action)
+    {
+        _busy = true;
+        _message = null;
+        var succeeded = false;
+        try
+        {
+            await action();
+            succeeded = true;
+        }
+        catch (InvalidOperationException ex)
+        {
+            _message = ex.Message;
+        }
+        catch (HttpRequestException)
+        {
+            _message = "Can't reach Caly Bear right now. Please try again.";
+        }
+
+        try
+        {
+            _pending = await Requests.GetPendingAsync(_user!);
+        }
+        catch (HttpRequestException)
+        {
+            _message = "Can't reach Caly Bear right now. Please try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+        return succeeded;
+    }
+}

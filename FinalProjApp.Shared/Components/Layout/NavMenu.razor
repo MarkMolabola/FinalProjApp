@@ -1,3 +1,8 @@
+@implements IDisposable
+@inject AuthenticationStateProvider AuthState
+@inject NavigationManager Navigation
+@inject IScheduleRequestService Requests
+
 <nav class="bottom-nav">
     <NavLink class="bottom-nav-item" href="" Match="NavLinkMatch.All">
         <i class="bi bi-house-heart-fill"></i>
@@ -22,6 +27,10 @@
             <NavLink class="bottom-nav-item" href="AddSchedule">
                 <i class="bi bi-clock-fill"></i>
                 <span>Schedule</span>
+                @if (_pendingRequests > 0)
+                {
+                    <span class="nav-badge" aria-label="@(_pendingRequests == 1 ? "1 schedule request waiting" : $"{_pendingRequests} schedule requests waiting")">@(_pendingRequests > 9 ? "9+" : _pendingRequests)</span>
+                }
             </NavLink>
             <NavLink class="bottom-nav-item" href="AddNew">
                 <i class="bi bi-people-fill"></i>
@@ -45,3 +54,38 @@
         <span>Contact</span>
     </NavLink>
 </nav>
+
+@code {
+    private int _pendingRequests;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Navigation.LocationChanged += OnLocationChanged;
+        Requests.Reviewed += OnReviewed;
+        await RefreshCountAsync();
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e) => _ = InvokeAsync(RefreshCountAsync);
+
+    private void OnReviewed() => _ = InvokeAsync(RefreshCountAsync);
+
+    private async Task RefreshCountAsync()
+    {
+        var user = (await AuthState.GetAuthenticationStateAsync()).User.ToAppUser();
+        try
+        {
+            _pendingRequests = user?.Role == "Admin" ? await Requests.CountPendingAsync(user) : 0;
+        }
+        catch (HttpRequestException)
+        {
+            return; // The phone is offline: keep showing the last count
+        }
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+        Requests.Reviewed -= OnReviewed;
+    }
+}

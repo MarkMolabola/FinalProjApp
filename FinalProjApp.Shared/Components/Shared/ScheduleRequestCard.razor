@@ -1,0 +1,180 @@
+@using FinalProjApp.Models
+@using FinalProjApp.Services
+@inject AuthenticationStateProvider AuthState
+@inject IScheduleRequestService Requests
+
+<div class="soft-card">
+    <div class="card-title-row">
+        <h3>Request a schedule</h3>
+    </div>
+    <p class="text-muted">We'll add it to the schedule once the daycare confirms it.</p>
+
+    @if (_message != null)
+    {
+        <div class="alert @(_failed ? "alert-danger" : "alert-success")">@_message</div>
+    }
+
+    <EditForm Model="@_form" OnValidSubmit="@SubmitAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary class="validation-errors" />
+
+        <div class="form-group">
+            <label>Kid</label>
+            <InputSelect class="form-select" @bind-Value="_form.ChildId" TValue="int">
+                <option value="0">Choose a kid…</option>
+                @foreach (var kid in Kids.OrderBy(k => k.FirstName))
+                {
+                    <option value="@kid.ChildId">@kid.FirstName @kid.LastName</option>
+                }
+            </InputSelect>
+        </div>
+
+        <div class="row g-2">
+            <div class="col-12 col-sm-6 form-group mb-2">
+                <label>Starts</label>
+                <InputDate Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="_form.StartTime" />
+            </div>
+            <div class="col-12 col-sm-6 form-group mb-2">
+                <label>Ends</label>
+                <InputDate Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="_form.EndTime" />
+            </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-3 my-2">
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="requestPickup" @bind="_form.NeedsPickup" />
+                <label class="form-check-label" for="requestPickup"><i class="bi bi-car-front-fill me-1"></i>Needs pickup</label>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="requestRepeats" @bind="_repeats" />
+                <label class="form-check-label" for="requestRepeats"><i class="bi bi-arrow-repeat me-1"></i>Repeats</label>
+            </div>
+        </div>
+
+        @if (_repeats)
+        {
+            <div class="row g-2">
+                <div class="col-6 form-group mb-2">
+                    <label>Every</label>
+                    <select class="form-select" @bind="_frequency">
+                        <option value="DAILY">Day</option>
+                        <option value="WEEKLY">Week</option>
+                        <option value="MONTHLY">Month</option>
+                    </select>
+                </div>
+                <div class="col-6 form-group mb-2">
+                    <label>Until</label>
+                    <InputDate class="form-control" @bind-Value="_until" />
+                </div>
+            </div>
+        }
+
+        <div class="form-group">
+            <label>Note</label>
+            <InputTextArea class="form-control" rows="2" @bind-Value="_form.Note" placeholder="e.g. Grandma picks up" />
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100" disabled="@_saving">
+            <i class="bi bi-send-fill me-1"></i>Send for review
+        </button>
+    </EditForm>
+</div>
+
+@if (_mine.Any())
+{
+    <div class="soft-card">
+        <div class="card-title-row">
+            <h3>Your requests</h3>
+        </div>
+        <div class="list-stack">
+            @foreach (var request in _mine)
+            {
+                <div class="list-row">
+                    <div class="grow">
+                        <div class="title">@request.ChildName</div>
+                        <div class="sub">
+                            @request.StartTime.ToString("MMM d, h:mm tt") – @request.EndTime.ToString("h:mm tt")@(string.IsNullOrWhiteSpace(request.Note) ? "" : $" · {request.Note}")
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(request.ReviewNote))
+                        {
+                            <div class="sub">Daycare: @request.ReviewNote</div>
+                        }
+                    </div>
+                    <div class="d-flex flex-column align-items-end gap-1">
+                        @switch (request.Status)
+                        {
+                            case ScheduleRequestStatus.Approved:
+                                <span class="pill tint-mint"><i class="bi bi-check-lg"></i> Confirmed</span>
+                                break;
+                            case ScheduleRequestStatus.Declined:
+                                <span class="pill tint-coral"><i class="bi bi-x-lg"></i> Declined</span>
+                                break;
+                            default:
+                                <span class="pill tint-sun"><i class="bi bi-hourglass-split"></i> Waiting</span>
+                                break;
+                        }
+                        @if (!string.IsNullOrEmpty(request.RecurrenceRule))
+                        {
+                            <span class="pill tint-lilac"><i class="bi bi-arrow-repeat"></i> Repeats</span>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public List<Child> Kids { get; set; } = new();
+
+    private ScheduleRequest _form = new();
+    private List<ScheduleRequest> _mine = new();
+    private AppUser? _user;
+
+    private bool _repeats;
+    private string _frequency = "WEEKLY";
+    private DateTime _until = DateTime.Today.AddMonths(3);
+
+    private bool _saving;
+    private bool _failed;
+    private string? _message;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthState.GetAuthenticationStateAsync()).User.ToAppUser();
+        if (_user != null) _mine = await Requests.GetMineAsync(_user);
+    }
+
+    private async Task SubmitAsync()
+    {
+        if (_user == null) return;
+
+        _saving = true;
+        _message = null;
+        try
+        {
+            _form.RecurrenceRule = _repeats ? ScheduleRules.BuildRule(_frequency, _until) : null;
+            await Requests.SubmitAsync(_user, _form);
+
+            _form = new();
+            _repeats = false;
+            _failed = false;
+            _message = "Sent! You'll see it here once it's been reviewed.";
+            _mine = await Requests.GetMineAsync(_user);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _failed = true;
+            _message = ex.Message;
+        }
+        catch (HttpRequestException)
+        {
+            _failed = true;
+            _message = "Can't reach Caly Bear right now. Please try again.";
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

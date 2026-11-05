@@ -70,6 +70,25 @@ namespace FinalProjApp.Data
                 );");
             db.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_Invites_CodeHash ON Invites (CodeHash);");
 
+            db.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS ScheduleRequests (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    ChildId INTEGER NOT NULL,
+                    StartTime TEXT NOT NULL,
+                    EndTime TEXT NOT NULL,
+                    NeedsPickup INTEGER NOT NULL,
+                    RecurrenceRule TEXT NULL,
+                    Note TEXT NULL,
+                    ChildName TEXT NOT NULL,
+                    RequestedByUserId INTEGER NOT NULL,
+                    RequestedByEmail TEXT NOT NULL,
+                    CreatedUtc TEXT NOT NULL,
+                    Status TEXT NOT NULL,
+                    ReviewedUtc TEXT NULL,
+                    ReviewedBy TEXT NULL,
+                    ReviewNote TEXT NULL
+                );");
+
             if (!db.Users.Any())
             {
                 var salt = UserAccounts.GenerateSalt();

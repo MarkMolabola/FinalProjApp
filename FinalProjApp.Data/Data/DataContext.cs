@@ -19,6 +19,7 @@ namespace FinalProjApp.Data
         public DbSet<Photo> Photos { get; set; }
         public DbSet<ChildGuardian> ChildGuardians { get; set; }
         public DbSet<Invite> Invites { get; set; }
+        public DbSet<ScheduleRequest> ScheduleRequests { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

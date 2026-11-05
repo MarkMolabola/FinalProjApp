@@ -53,6 +53,16 @@ namespace FinalProjApp.Services
             return result;
         }
 
+        /// <summary>The rule for an event repeating until (and including) <paramref name="until"/>.</summary>
+        public static string BuildRule(string frequency, DateTime until) =>
+            $"FREQ={frequency};INTERVAL=1;UNTIL={until:yyyyMMdd}T000000Z;";
+
+        /// <summary>True for a rule the app could have written, ending on or after the first day.</summary>
+        public static bool IsValidRule(string rule, DateTime start) =>
+            Regex.IsMatch(rule, @"^FREQ=(DAILY|WEEKLY|MONTHLY);INTERVAL=1;UNTIL=\d{8}T000000Z;$")
+            && Until(rule) is { } until
+            && until >= start.Date;
+
         private static string Frequency(string rule) =>
             Regex.Match(rule, @"FREQ=(\w+)") is { Success: true } m ? m.Groups[1].Value : "";
 

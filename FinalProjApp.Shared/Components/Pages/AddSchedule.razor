@@ -12,6 +12,15 @@
     </div>
 </div>
 
+@if (_loaded)
+{
+    <AuthorizeView Roles="Admin" Context="adminView">
+        <Authorized>
+            <FinalProjApp.Components.Shared.ScheduleRequestReview OnConfirmed="ReloadEventsAsync" />
+        </Authorized>
+    </AuthorizeView>
+}
+
 <div class="two-col">
 
     <!-- ── Form ── -->
@@ -164,12 +173,16 @@
     private bool _isRecurring = false;
     private string _recurrenceFreq = "WEEKLY";
     private DateTime _recurrenceUntil = DateTime.Today.AddMonths(3);
+    private bool _loaded;
 
     protected override async Task OnInitializedAsync()
     {
         children = await ChildService.GetList() ?? new();
         events = await EventService.GetList() ?? new();
+        _loaded = true;
     }
+
+    private async Task ReloadEventsAsync() => events = await EventService.GetList() ?? new();
 
     private async Task HandleValidSubmit()
     {

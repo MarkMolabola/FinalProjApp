@@ -35,6 +35,7 @@ namespace FinalProjApp.Web.Api
             MapPhotos(api.MapGroup("/photos"));
             MapFamily(api.MapGroup("/family").RequireAuthorization(StaffOnly));
             MapInvites(api.MapGroup("/invites"));
+            MapScheduleRequests(api.MapGroup("/schedule-requests"));
         }
 
         // ── Kids page: kids + guardians + invites (staff only) ───────────────
@@ -221,6 +222,56 @@ namespace FinalProjApp.Web.Api
                 await db.SaveChangesAsync();
                 return Results.NoContent();
             }).RequireAuthorization(StaffOnly);
+        }
+
+        // ── Schedule requests: parents ask, the admin confirms or declines ───
+
+        private static void MapScheduleRequests(RouteGroupBuilder requests)
+        {
+            requests.MapGet("/mine", (ClaimsPrincipal user, IScheduleRequestService service) =>
+                service.GetMineAsync(user.ToAppUser()!)).RequireAuthorization(SignedIn);
+
+            requests.MapPost("/", async (ScheduleRequest request, ClaimsPrincipal user, IScheduleRequestService service) =>
+            {
+                try
+                {
+                    var saved = await service.SubmitAsync(user.ToAppUser()!, request);
+                    return Results.Created($"/api/schedule-requests/{saved.Id}", saved);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return Results.Conflict(ex.Message);
+                }
+            }).RequireAuthorization(SignedIn);
+
+            requests.MapGet("/", (ClaimsPrincipal user, IScheduleRequestService service) =>
+                service.GetPendingAsync(user.ToAppUser()!)).RequireAuthorization(AdminOnly);
+
+            requests.MapPost("/{id:int}/approve", async (int id, ClaimsPrincipal user, IScheduleRequestService service) =>
+            {
+                try
+                {
+                    await service.ApproveAsync(user.ToAppUser()!, id);
+                    return Results.NoContent();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return Results.Conflict(ex.Message);
+                }
+            }).RequireAuthorization(AdminOnly);
+
+            requests.MapPost("/{id:int}/decline", async (int id, DeclineScheduleRequest body, ClaimsPrincipal user, IScheduleRequestService service) =>
+            {
+                try
+                {
+                    await service.DeclineAsync(user.ToAppUser()!, id, body.Reason);
+                    return Results.NoContent();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return Results.Conflict(ex.Message);
+                }
+            }).RequireAuthorization(AdminOnly);
         }
 
         // ── Photos: public Showcase for guests, Families for signed-in users ─
