@@ -181,6 +181,9 @@ else
     // Phone cameras take big pictures; 15 MB leaves headroom over the 500 KB default
     private const long MaxPhotoBytes = 15 * 1024 * 1024;
 
+    // Big enough to look sharp on a phone, and about a tenth of the size of the original
+    private const int MaxPhotoEdge = 1600;
+
     private List<Photo> _photos = new();
     private List<Child> _kids = new();
     private readonly HashSet<int> _uploadKids = new();
@@ -294,10 +297,11 @@ else
         {
             foreach (var file in e.GetMultipleFiles())
             {
-                using var stream = file.OpenReadStream(MaxPhotoBytes);
+                var photo = await ShrinkAsync(file);
+                using var stream = photo.OpenReadStream(MaxPhotoBytes);
                 using var memory = new MemoryStream();
                 await stream.CopyToAsync(memory);
-                _photos.Insert(0, await PhotoService.AddAsync(file.Name, file.ContentType, memory.ToArray(), _showPublic, _uploadKids.ToList()));
+                _photos.Insert(0, await PhotoService.AddAsync(file.Name, photo.ContentType, memory.ToArray(), _showPublic, _uploadKids.ToList()));
             }
             _uploadKids.Clear(); // so the next batch can't be tagged with these kids by mistake
         }
@@ -324,6 +328,19 @@ else
     }
 
     private void CancelConfirm() => _confirmingDeleteId = _confirmingPublicId = _taggingId = null;
+
+    /// <summary>A smaller JPEG of the photo, or the original if this browser can't read the format.</summary>
+    private static async Task<IBrowserFile> ShrinkAsync(IBrowserFile file)
+    {
+        try
+        {
+            return await file.RequestImageFileAsync("image/jpeg", MaxPhotoEdge, MaxPhotoEdge);
+        }
+        catch (JSException)
+        {
+            return file;
+        }
+    }
 
     private async Task Move(Photo photo)
     {
