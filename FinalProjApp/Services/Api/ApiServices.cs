@@ -53,12 +53,16 @@ namespace FinalProjApp.Services.Api
         private readonly ApiClient _api;
         public ApiPhotoService(ApiClient api) => _api = api;
 
-        public Task<List<Photo>> GetAsync(bool publicAlbum) =>
+        // The server works out what this user may see from the sign-in token
+        public Task<List<Photo>> GetAsync(bool publicAlbum, AppUser? viewer) =>
             _api.GetAsync<List<Photo>>(publicAlbum ? "api/photos/showcase" : "api/photos/families");
 
-        public async Task<Photo> AddAsync(string fileName, string contentType, byte[] data, bool publicAlbum)
+        public Task SetKidsAsync(int photoId, IReadOnlyCollection<int> childIds) =>
+            _api.SendAsync(HttpMethod.Put, $"api/photos/{photoId}/kids", childIds);
+
+        public async Task<Photo> AddAsync(string fileName, string contentType, byte[] data, bool publicAlbum, IReadOnlyCollection<int> childIds)
         {
-            var photo = new Photo { FileName = fileName, ContentType = contentType, Data = data, IsPublic = publicAlbum };
+            var photo = new Photo { FileName = fileName, ContentType = contentType, Data = data, IsPublic = publicAlbum, ChildIds = childIds.ToList() };
             var response = await _api.PostAsync("api/photos", photo);
             response.EnsureSuccessStatusCode();
             return await response.Content.ReadFromJsonAsync<Photo>() ?? photo;

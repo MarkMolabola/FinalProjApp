@@ -594,6 +594,61 @@ a, .btn-link { color: var(--coral-dark); }
     text-align: center;
 }
 
+/* The kid list scrolls so Save and Cancel always stay in view */
+.photo-tagger { top: 8px; }
+
+.kid-list {
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+    text-align: left;
+}
+
+.photo-tag {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    max-width: calc(100% - 20px);
+    height: 28px;
+    padding: 0 0.6rem;
+    border: 0;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: var(--shadow-sm);
+    color: var(--ink-soft);
+    font-size: 0.72rem;
+    font-weight: 800;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.photo-tag.untagged { background: var(--sun-50); color: #A87A12; }
+
+.kid-picker { margin-bottom: 0.75rem; }
+
+.kid-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.8rem;
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink-soft);
+    font-size: 0.8rem;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.kid-chip.selected { border-color: var(--coral); background: var(--coral-50); color: var(--coral-dark); }
+
+.kid-chip input { position: absolute; opacity: 0; width: 0; height: 0; }
+
 .photo-confirm .d-flex { flex-wrap: wrap; justify-content: center; }
 
 .photo-confirm .btn { padding: 0.25rem 0.6rem; font-size: 0.75rem; }

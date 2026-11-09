@@ -1,11 +1,12 @@
 @page "/photos"
 @inject IPhotoService PhotoService
 @inject AuthenticationStateProvider AuthState
+@inject ICRUD<Child> ChildService
 
 @*
     Two albums: a public Showcase (what guests see, chosen by the admin) and the
-    private Families album (signed-in parents and staff). Only admins add, move
-    or delete photos.
+    private Families album, where staff see everything and parents see only photos
+    tagged with their own kids. Only admins add, tag, move or delete photos.
 *@
 
 <div class="page-head">
@@ -28,7 +29,7 @@
     <div class="album-tabs mb-3">
         <button type="button" class="album-tab @(!_showPublic ? "active" : "")" @onclick="() => ShowAlbum(false)">
             <i class="bi bi-house-heart-fill"></i> Families
-            <small>signed-in parents &amp; staff</small>
+            <small>each family sees their kids</small>
         </button>
         <button type="button" class="album-tab @(_showPublic ? "active" : "")" @onclick="() => ShowAlbum(true)">
             <i class="bi bi-stars"></i> Showcase
@@ -36,11 +37,28 @@
         </button>
     </div>
 
+    @if (!_showPublic)
+    {
+        <div class="kid-picker">
+            <div class="section-label mt-0">Who's in the next photos?</div>
+            <div class="d-flex flex-wrap gap-2">
+                @foreach (var kid in _kids)
+                {
+                    var selected = _uploadKids.Contains(kid.ChildId);
+                    <label class="kid-chip @(selected ? "selected" : "")">
+                        <input type="checkbox" checked="@selected" @onchange="() => Toggle(_uploadKids, kid.ChildId)" />
+                        @kid.FirstName @kid.LastName
+                    </label>
+                }
+            </div>
+        </div>
+    }
+
     <label class="upload-drop">
         <span class="bubble bubble-lg tint-coral"><i class="bi bi-cloud-arrow-up-fill"></i></span>
         <span class="grow">
             <span class="title d-block">@(_uploading ? "Uploading…" : $"Add photos to {(_showPublic ? "the Showcase" : "Families")}")</span>
-            <span class="sub d-block">@(_showPublic ? "Anyone visiting the app will see these" : "Only signed-in parents and staff will see these")</span>
+            <span class="sub d-block">@(_showPublic ? "Anyone visiting the app will see these" : "Only those kids' families and staff will see these")</span>
         </span>
         <InputFile OnChange="HandleFileUpload" multiple accept="image/*" />
     </label>
@@ -54,7 +72,7 @@
 @if (_movedToPublic is { } movedToPublic)
 {
     <div class="alert alert-success mt-3 d-flex align-items-center justify-content-between gap-2">
-        <span>Moved to @AlbumName(movedToPublic).</span>
+        <span>Moved to @AlbumName(movedToPublic).@(movedToPublic ? "" : " Tag the kids in it so their families can see it.")</span>
         <button type="button" class="btn btn-secondary btn-sm text-nowrap" @onclick="() => ShowAlbum(movedToPublic)">Go to @AlbumName(movedToPublic)</button>
     </div>
 }
@@ -66,7 +84,32 @@
         {
             <div class="photo-tile" @key="photo.Id">
                 <img src="@Url(photo)" class="photo-item" alt="" />
-                @if (_isAdmin && _confirmingDeleteId == photo.Id)
+                @if (_isAdmin && !photo.IsPublic && _taggingId != photo.Id)
+                {
+                    <button type="button" class="photo-tag @(photo.ChildIds.Any() ? "" : "untagged")" @onclick="() => StartTagging(photo)">
+                        <i class="bi bi-person-fill"></i> @KidNames(photo)
+                    </button>
+                }
+                @if (_isAdmin && _taggingId == photo.Id)
+                {
+                    <div class="photo-confirm photo-tagger">
+                        <span>Who's in this photo?</span>
+                        <div class="kid-list">
+                            @foreach (var kid in _kids)
+                            {
+                                <label class="form-check-label">
+                                    <input type="checkbox" class="form-check-input me-1" checked="@_tagKids.Contains(kid.ChildId)" @onchange="() => Toggle(_tagKids, kid.ChildId)" />
+                                    @kid.FirstName @kid.LastName
+                                </label>
+                            }
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-primary btn-sm" @onclick="() => SaveTags(photo)">Save</button>
+                            <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelConfirm">Cancel</button>
+                        </div>
+                    </div>
+                }
+                else if (_isAdmin && _confirmingDeleteId == photo.Id)
                 {
                     <div class="photo-confirm">
                         <span>Delete for good?</span>
@@ -117,7 +160,7 @@ else
             <span class="emoji">📸</span>
             @(_isAdmin
                 ? (_showPublic ? "The Showcase is empty. Add a few photos guests can see." : "No family photos yet. Add the first one!")
-                : "No photos yet. Check back soon!")
+                : (_isParent ? "No photos of your kids yet. Check back soon!" : "No photos yet. Check back soon!"))
         </div>
     </div>
 }
@@ -139,7 +182,12 @@ else
     private const long MaxPhotoBytes = 15 * 1024 * 1024;
 
     private List<Photo> _photos = new();
-    private bool _isGuest, _isAdmin, _showPublic, _uploading;
+    private List<Child> _kids = new();
+    private readonly HashSet<int> _uploadKids = new();
+    private readonly HashSet<int> _tagKids = new();
+    private int? _taggingId;
+    private AppUser? _viewer;
+    private bool _isGuest, _isAdmin, _isParent, _showPublic, _uploading;
     private string? _error;
 
     private int? _confirmingDeleteId, _confirmingPublicId;
@@ -152,8 +200,59 @@ else
         var user = (await AuthState.GetAuthenticationStateAsync()).User;
         _isGuest = user.Identity?.IsAuthenticated != true;
         _isAdmin = user.IsInRole("Admin");
+        _isParent = user.IsInRole("Parent");
+        _viewer = user.ToAppUser();
         _showPublic = _isGuest; // guests only ever see the Showcase
         await LoadAsync();
+
+        if (_isAdmin)
+        {
+            try
+            {
+                _kids = (await ChildService.GetList() ?? new()).OrderBy(k => k.FirstName).ToList();
+            }
+            catch (HttpRequestException)
+            {
+                _error = "Couldn't load the kids list. Check your connection and try again.";
+            }
+        }
+    }
+
+    private static void Toggle(HashSet<int> kids, int childId)
+    {
+        if (!kids.Remove(childId)) kids.Add(childId);
+    }
+
+    private string KidNames(Photo photo)
+    {
+        var names = _kids.Where(k => photo.ChildIds.Contains(k.ChildId)).Select(k => k.FirstName).ToList();
+        return names.Any() ? string.Join(", ", names) : "Tag kids";
+    }
+
+    private void StartTagging(Photo photo)
+    {
+        CancelConfirm();
+        _tagKids.Clear();
+        _tagKids.UnionWith(photo.ChildIds);
+        _taggingId = photo.Id;
+    }
+
+    private async Task SaveTags(Photo photo)
+    {
+        if (!_isAdmin) return;
+
+        var chosen = _tagKids.ToList();
+        try
+        {
+            await PhotoService.SetKidsAsync(photo.Id, chosen);
+            photo.ChildIds = chosen;
+            _taggingId = null;
+            _error = null;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Those tags couldn't be saved. Check your connection and try again.";
+        }
     }
 
     private async Task ShowAlbum(bool publicAlbum)
@@ -169,7 +268,7 @@ else
         try
         {
             _error = null;
-            _photos = await PhotoService.GetAsync(_showPublic);
+            _photos = await PhotoService.GetAsync(_showPublic, _viewer);
         }
         catch (HttpRequestException)
         {
@@ -182,6 +281,14 @@ else
         // The upload box is admin-only, but check again in case someone gets here anyway
         if (!_isAdmin) return;
 
+        // A Families photo with no kids tagged would only reach staff
+        if (!_showPublic && _uploadKids.Count == 0)
+        {
+            _error = "Choose who's in the photos first, so their families can see them.";
+            return;
+        }
+
+        _error = null;
         _uploading = true;
         try
         {
@@ -190,8 +297,9 @@ else
                 using var stream = file.OpenReadStream(MaxPhotoBytes);
                 using var memory = new MemoryStream();
                 await stream.CopyToAsync(memory);
-                _photos.Insert(0, await PhotoService.AddAsync(file.Name, file.ContentType, memory.ToArray(), _showPublic));
+                _photos.Insert(0, await PhotoService.AddAsync(file.Name, file.ContentType, memory.ToArray(), _showPublic, _uploadKids.ToList()));
             }
+            _uploadKids.Clear(); // so the next batch can't be tagged with these kids by mistake
         }
         catch (Exception ex) when (ex is IOException or HttpRequestException)
         {
@@ -215,7 +323,7 @@ else
         _confirmingPublicId = photo.Id;
     }
 
-    private void CancelConfirm() => _confirmingDeleteId = _confirmingPublicId = null;
+    private void CancelConfirm() => _confirmingDeleteId = _confirmingPublicId = _taggingId = null;
 
     private async Task Move(Photo photo)
     {

@@ -79,6 +79,7 @@ namespace FinalProjApp.Services
 
             var links = await _db.ChildGuardians.Where(l => l.ChildId == childId).ToListAsync();
             _db.ChildGuardians.RemoveRange(links);
+            _db.PhotoChildren.RemoveRange(_db.PhotoChildren.Where(l => l.ChildId == childId));
             _db.children.Remove(kid);
             await _db.SaveChangesAsync();
 

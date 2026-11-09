@@ -71,6 +71,13 @@ namespace FinalProjApp.Data
             db.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_Invites_CodeHash ON Invites (CodeHash);");
 
             db.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS PhotoChildren (
+                    PhotoId INTEGER NOT NULL,
+                    ChildId INTEGER NOT NULL,
+                    CONSTRAINT PK_PhotoChildren PRIMARY KEY (PhotoId, ChildId)
+                );");
+
+            db.Database.ExecuteSqlRaw(@"
                 CREATE TABLE IF NOT EXISTS ScheduleRequests (
                     Id INTEGER PRIMARY KEY AUTOINCREMENT,
                     ChildId INTEGER NOT NULL,

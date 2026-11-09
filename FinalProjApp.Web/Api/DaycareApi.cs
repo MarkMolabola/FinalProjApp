@@ -289,14 +289,14 @@ namespace FinalProjApp.Web.Api
             }).RequireAuthorization(AdminOnly);
         }
 
-        // ── Photos: public Showcase for guests, Families for signed-in users ─
+        // ── Photos: public Showcase for guests; in Families, parents get only their kids' ─
 
         private static void MapPhotos(RouteGroupBuilder photos)
         {
             // Anyone, signed in or not, can see the Showcase the admin picked
-            photos.MapGet("/showcase", (IPhotoService service) => service.GetAsync(publicAlbum: true));
+            photos.MapGet("/showcase", (IPhotoService service) => service.GetAsync(publicAlbum: true, viewer: null));
 
-            photos.MapGet("/families", (IPhotoService service) => service.GetAsync(publicAlbum: false))
+            photos.MapGet("/families", (ClaimsPrincipal user, IPhotoService service) => service.GetAsync(publicAlbum: false, user.ToAppUser()))
                 .RequireAuthorization(SignedIn);
 
             photos.MapPost("/", async (Photo photo, IPhotoService service) =>
@@ -306,13 +306,19 @@ namespace FinalProjApp.Web.Api
                 if (!photo.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase))
                     return Results.BadRequest("Only images can be uploaded.");
 
-                var saved = await service.AddAsync(photo.FileName, photo.ContentType, photo.Data, photo.IsPublic);
+                var saved = await service.AddAsync(photo.FileName, photo.ContentType, photo.Data, photo.IsPublic, photo.ChildIds);
                 return Results.Created($"/api/photos/{saved.Id}", saved);
             }).RequireAuthorization(AdminOnly);
 
             photos.MapPut("/{id:int}/album", async (int id, bool isPublic, IPhotoService service) =>
             {
                 await service.MoveAsync(id, isPublic);
+                return Results.NoContent();
+            }).RequireAuthorization(AdminOnly);
+
+            photos.MapPut("/{id:int}/kids", async (int id, List<int> childIds, IPhotoService service) =>
+            {
+                await service.SetKidsAsync(id, childIds);
                 return Results.NoContent();
             }).RequireAuthorization(AdminOnly);
 

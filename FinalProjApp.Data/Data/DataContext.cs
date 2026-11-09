@@ -20,12 +20,14 @@ namespace FinalProjApp.Data
         public DbSet<ChildGuardian> ChildGuardians { get; set; }
         public DbSet<Invite> Invites { get; set; }
         public DbSet<ScheduleRequest> ScheduleRequests { get; set; }
+        public DbSet<PhotoChild> PhotoChildren { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // A kid can have several guardians, and siblings share one
             modelBuilder.Entity<ChildGuardian>().HasKey(l => new { l.ChildId, l.GuardianId });
             modelBuilder.Entity<Invite>().HasIndex(i => i.CodeHash);
+            modelBuilder.Entity<PhotoChild>().HasKey(l => new { l.PhotoId, l.ChildId });
 
             modelBuilder.Entity<ChildGuardian>().HasData(new ChildGuardian
             {
