@@ -562,6 +562,42 @@ a, .btn-link { color: var(--coral-dark); }
     box-shadow: var(--shadow-sm);
 }
 
+.photo-move {
+    height: 34px;
+    padding: 0 0.7rem;
+    border: 0;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: var(--shadow-sm);
+    color: var(--ink-soft);
+    font-size: 0.75rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.photo-confirm {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    padding: 0.55rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: var(--shadow-sm);
+    color: var(--ink);
+    font-size: 0.8rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+.photo-confirm .d-flex { flex-wrap: wrap; justify-content: center; }
+
+.photo-confirm .btn { padding: 0.25rem 0.6rem; font-size: 0.75rem; }
+
 /* Admin's Families / Showcase switch on the Photos page */
 .album-tabs {
     display: grid;

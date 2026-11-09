@@ -51,21 +51,57 @@
     <div class="alert alert-danger mt-3">@_error</div>
 }
 
+@if (_movedToPublic is { } movedToPublic)
+{
+    <div class="alert alert-success mt-3 d-flex align-items-center justify-content-between gap-2">
+        <span>Moved to @AlbumName(movedToPublic).</span>
+        <button type="button" class="btn btn-secondary btn-sm text-nowrap" @onclick="() => ShowAlbum(movedToPublic)">Go to @AlbumName(movedToPublic)</button>
+    </div>
+}
+
 @if (_photos.Any())
 {
     <div class="photo-grid">
         @foreach (var photo in _photos)
         {
-            <div class="photo-tile">
+            <div class="photo-tile" @key="photo.Id">
                 <img src="@Url(photo)" class="photo-item" alt="" />
-                @if (_isAdmin)
+                @if (_isAdmin && _confirmingDeleteId == photo.Id)
+                {
+                    <div class="photo-confirm">
+                        <span>Delete for good?</span>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-danger btn-sm" @onclick="() => Delete(photo)">Delete</button>
+                            <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelConfirm">Cancel</button>
+                        </div>
+                    </div>
+                }
+                else if (_isAdmin && _confirmingPublicId == photo.Id)
+                {
+                    <div class="photo-confirm">
+                        <span>Anyone visiting can see this.</span>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-primary btn-sm" @onclick="() => Move(photo)">Make public</button>
+                            <button type="button" class="btn btn-secondary btn-sm" @onclick="CancelConfirm">Cancel</button>
+                        </div>
+                    </div>
+                }
+                else if (_isAdmin)
                 {
                     <div class="photo-actions">
-                        <button type="button" class="icon-btn" title="@(photo.IsPublic ? "Move to Families (private)" : "Move to the public Showcase")"
-                                @onclick="() => Move(photo)">
-                            <i class="bi @(photo.IsPublic ? "bi-lock-fill" : "bi-stars")"></i>
-                        </button>
-                        <button type="button" class="icon-btn" title="Delete photo" @onclick="() => Delete(photo)">
+                        @if (photo.IsPublic)
+                        {
+                            <button type="button" class="photo-move" @onclick="() => Move(photo)">
+                                <i class="bi bi-lock-fill"></i> Make private
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button" class="photo-move" @onclick="() => AskToMakePublic(photo)">
+                                <i class="bi bi-stars"></i> Make public
+                            </button>
+                        }
+                        <button type="button" class="icon-btn" title="Delete photo" aria-label="Delete photo" @onclick="() => AskToDelete(photo)">
                             <i class="bi bi-trash3-fill"></i>
                         </button>
                     </div>
@@ -106,6 +142,11 @@ else
     private bool _isGuest, _isAdmin, _showPublic, _uploading;
     private string? _error;
 
+    private int? _confirmingDeleteId, _confirmingPublicId;
+    private bool? _movedToPublic; // set after a move, so the admin can see where the photo went
+
+    private static string AlbumName(bool publicAlbum) => publicAlbum ? "the Showcase" : "Families";
+
     protected override async Task OnInitializedAsync()
     {
         var user = (await AuthState.GetAuthenticationStateAsync()).User;
@@ -118,6 +159,8 @@ else
     private async Task ShowAlbum(bool publicAlbum)
     {
         _showPublic = publicAlbum;
+        _movedToPublic = null;
+        CancelConfirm();
         await LoadAsync();
     }
 
@@ -160,18 +203,55 @@ else
         }
     }
 
+    private void AskToDelete(Photo photo)
+    {
+        CancelConfirm();
+        _confirmingDeleteId = photo.Id;
+    }
+
+    private void AskToMakePublic(Photo photo)
+    {
+        CancelConfirm();
+        _confirmingPublicId = photo.Id;
+    }
+
+    private void CancelConfirm() => _confirmingDeleteId = _confirmingPublicId = null;
+
     private async Task Move(Photo photo)
     {
         if (!_isAdmin) return;
-        await PhotoService.MoveAsync(photo.Id, !photo.IsPublic);
-        _photos.Remove(photo); // it now belongs to the other album
+        CancelConfirm();
+
+        var toPublic = !photo.IsPublic;
+        try
+        {
+            await PhotoService.MoveAsync(photo.Id, toPublic);
+            _photos.Remove(photo); // it now belongs to the other album
+            _movedToPublic = toPublic;
+            _error = null;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "That photo couldn't be moved. Check your connection and try again.";
+        }
     }
 
     private async Task Delete(Photo photo)
     {
         if (!_isAdmin) return;
-        await PhotoService.DeleteAsync(photo.Id);
-        _photos.Remove(photo);
+        CancelConfirm();
+
+        try
+        {
+            await PhotoService.DeleteAsync(photo.Id);
+            _photos.Remove(photo);
+            _movedToPublic = null;
+            _error = null;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "That photo couldn't be deleted. Check your connection and try again.";
+        }
     }
 
     private static string Url(Photo p) => $"data:{p.ContentType};base64,{Convert.ToBase64String(p.Data)}";
