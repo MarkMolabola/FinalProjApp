@@ -13,6 +13,8 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.9" />
+    <!-- Newer than the version EF Core brings in, which has a known SQLite vulnerability (GHSA-2m69-gcr7-jv3q) -->
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="2.1.14" />
   </ItemGroup>
 
   <ItemGroup>
