@@ -98,11 +98,7 @@ namespace FinalProjApp.Services
             if (!await _db.children.AnyAsync(c => c.ChildId == request.ChildId))
                 throw new InvalidOperationException($"{request.ChildName} is no longer enrolled, so this request can only be declined.");
 
-            // Claiming the request first means two admins can't add it to the schedule twice
-            await using var transaction = await _db.Database.BeginTransactionAsync();
-            await ClaimAsync(admin, requestId, ScheduleRequestStatus.Approved, reviewNote: null);
-
-            _db.scheduleEvents.Add(new ScheduleEvent
+            var scheduleEvent = new ScheduleEvent
             {
                 Subject = request.ChildName,
                 ChildId = request.ChildId,
@@ -111,9 +107,19 @@ namespace FinalProjApp.Services
                 NeedsPickup = request.NeedsPickup,
                 RecurrenceRule = request.RecurrenceRule,
                 Note = request.Note
+            };
+
+            // A transaction has to run inside the retry strategy, so a retry repeats all of it
+            await _db.Database.CreateExecutionStrategy().ExecuteAsync(async () =>
+            {
+                // Claiming the request first means two admins can't add it to the schedule twice
+                await using var transaction = await _db.Database.BeginTransactionAsync();
+                await ClaimAsync(admin, requestId, ScheduleRequestStatus.Approved, reviewNote: null);
+
+                _db.scheduleEvents.Add(scheduleEvent);
+                await _db.SaveChangesAsync();
+                await transaction.CommitAsync();
             });
-            await _db.SaveChangesAsync();
-            await transaction.CommitAsync();
             Reviewed?.Invoke();
         }
 

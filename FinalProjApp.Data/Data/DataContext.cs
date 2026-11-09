@@ -26,41 +26,11 @@ namespace FinalProjApp.Data
         {
             // A kid can have several guardians, and siblings share one
             modelBuilder.Entity<ChildGuardian>().HasKey(l => new { l.ChildId, l.GuardianId });
+            modelBuilder.Entity<Invite>().Property(i => i.CodeHash).HasMaxLength(64);
             modelBuilder.Entity<Invite>().HasIndex(i => i.CodeHash);
+            modelBuilder.Entity<AppUser>().Property(u => u.Email).HasMaxLength(256);
+            modelBuilder.Entity<AppUser>().HasIndex(u => u.Email).IsUnique();
             modelBuilder.Entity<PhotoChild>().HasKey(l => new { l.PhotoId, l.ChildId });
-
-            modelBuilder.Entity<ChildGuardian>().HasData(new ChildGuardian
-            {
-                ChildId = 1,
-                GuardianId = Guid.Parse("11111111-1111-1111-1111-111111111111")
-            });
-
-            modelBuilder.Entity<Guardian>().HasData(data: new Guardian
-            {
-                GuardianId = Guid.Parse("11111111-1111-1111-1111-111111111111"),
-                FullName = "MARk M",
-                PhoneNumber = "1234567890",
-                Address = "123 Main"
-                });
-
-            modelBuilder.Entity<Child>().HasData(data: new Child
-            {
-                ChildId = 1,
-                FirstName = "John",
-                LastName = "Doe",
-                DateofBirth = new DateTime(2015, 5, 15),
-                GuardianID = Guid.Parse("11111111-1111-1111-1111-111111111111")
-            });
-            modelBuilder.Entity<ScheduleEvent>().HasData(data: new ScheduleEvent
-            {
-                Id = 1,
-                Subject = "Soccer Practice",
-                StartTime = new DateTime(2026, 3, 28, 16, 0, 0),
-                EndTime = new DateTime(2026, 3, 28, 17, 0, 0),
-                Description = "Weekly soccer practice",
-                Location = "Community Park",
-                ChildId = 1
-            });
 
 
         }

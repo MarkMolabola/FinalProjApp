@@ -22,10 +22,15 @@ if (builder.Configuration["Syncfusion:LicenseKey"] is { Length: > 0 } syncfusion
     Syncfusion.Licensing.SyncfusionLicenseProvider.RegisterLicense(syncfusionKey);
 builder.Services.AddSyncfusionBlazor();
 
-// Database: a SQLite file, App_Data/DaycareSystem.db unless configured otherwise
+// Database: LocalDB on this computer (appsettings.Development.json), Azure SQL when hosted.
+// Each service gets its own DataContext: Blazor pages load data side by side, and one
+// DataContext can only do one thing at a time. Retries ride out Azure SQL's brief drop-outs.
 var connectionString = builder.Configuration.GetConnectionString("Daycare")
-    ?? $"Data Source={Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DaycareSystem.db")}";
-builder.Services.AddDbContext<DataContext>(options => options.UseSqlite(connectionString));
+    ?? throw new InvalidOperationException("Set ConnectionStrings:Daycare (the ConnectionStrings__Daycare app setting on Azure).");
+builder.Services.AddDbContext<DataContext>(
+    options => options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure()),
+    contextLifetime: ServiceLifetime.Transient,
+    optionsLifetime: ServiceLifetime.Singleton);
 builder.Services.AddScoped<ICRUD<Child>, ChildCRUD>();
 builder.Services.AddScoped<ICRUD<Guardian>, GuardianCRUD>();
 builder.Services.AddScoped<ICRUD<ScheduleEvent>, ScheduleEventCRUD>();
@@ -81,10 +86,10 @@ builder.Services.AddScoped<IAuthService, WebAuthService>();
 
 var app = builder.Build();
 
-// Create the database (and the admin account) on first run
-Directory.CreateDirectory(Path.Combine(app.Environment.ContentRootPath, "App_Data"));
+// Bring the database up to date and, on first run, create the admin account
+var initialAdminPassword = app.Configuration["Admin:InitialPassword"] ?? (app.Environment.IsDevelopment() ? "Admin123!" : null);
 using (var scope = app.Services.CreateScope())
-    DbInitializer.Initialize(scope.ServiceProvider.GetRequiredService<DataContext>());
+    DbInitializer.Initialize(scope.ServiceProvider.GetRequiredService<DataContext>(), initialAdminPassword);
 
 if (!app.Environment.IsDevelopment())
 {
