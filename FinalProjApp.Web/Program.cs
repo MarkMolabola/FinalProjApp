@@ -76,6 +76,7 @@ builder.Services.AddSingleton<TokenService>();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<UserAccounts>();
+builder.Services.AddSingleton<SignInThrottle>();
 builder.Services.AddScoped<IAuthService, WebAuthService>();
 
 var app = builder.Build();

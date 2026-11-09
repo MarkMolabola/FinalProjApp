@@ -16,20 +16,25 @@ namespace FinalProjApp.Web.Services
         private static readonly TimeSpan TicketLifetime = TimeSpan.FromMinutes(1);
 
         private readonly UserAccounts _accounts;
+        private readonly SignInThrottle _throttle;
         private readonly IMemoryCache _tickets;
         private readonly NavigationManager _nav;
 
-        public WebAuthService(UserAccounts accounts, IMemoryCache tickets, NavigationManager nav)
+        public WebAuthService(UserAccounts accounts, SignInThrottle throttle, IMemoryCache tickets, NavigationManager nav)
         {
             _accounts = accounts;
+            _throttle = throttle;
             _tickets = tickets;
             _nav = nav;
         }
 
         public async Task<string?> SignInAsync(string email, string password, string? returnUrl = null)
         {
+            if (!_throttle.TryStart(email)) return AuthClaims.TooManyAttemptsMessage;
+
             var user = await _accounts.CheckPasswordAsync(email, password);
             if (user == null) return "That email and password don't match.";
+            _throttle.Reset(email);
 
             var ticket = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
             _tickets.Set(TicketKey(ticket), user, TicketLifetime);

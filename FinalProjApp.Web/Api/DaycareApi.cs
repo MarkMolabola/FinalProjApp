@@ -1,6 +1,7 @@
 using FinalProjApp.Data;
 using FinalProjApp.Models;
 using FinalProjApp.Services;
+using FinalProjApp.Web.Services;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
@@ -24,10 +25,18 @@ namespace FinalProjApp.Web.Api
         {
             var api = app.MapGroup("/api");
 
-            api.MapPost("/auth/login", async (LoginRequest body, UserAccounts accounts, TokenService tokens) =>
-                await accounts.CheckPasswordAsync(body.Email ?? "", body.Password ?? "") is { } user
-                    ? Results.Ok(tokens.Issue(user))
-                    : Results.Unauthorized());
+            api.MapPost("/auth/login", async (LoginRequest body, UserAccounts accounts, SignInThrottle throttle, TokenService tokens) =>
+            {
+                var email = body.Email ?? "";
+                if (!throttle.TryStart(email))
+                    return Results.Json(AuthClaims.TooManyAttemptsMessage, statusCode: StatusCodes.Status429TooManyRequests);
+
+                if (await accounts.CheckPasswordAsync(email, body.Password ?? "") is not { } user)
+                    return Results.Unauthorized();
+
+                throttle.Reset(email);
+                return Results.Ok(tokens.Issue(user));
+            });
 
             MapChildren(api.MapGroup("/children"));
             MapGuardians(api.MapGroup("/guardians").RequireAuthorization(StaffOnly));
@@ -198,6 +207,9 @@ namespace FinalProjApp.Web.Api
 
             events.MapPost("/", async (ScheduleEvent ev, DataContext db) =>
             {
+                if (!await db.children.AnyAsync(c => c.ChildId == ev.ChildId))
+                    return Results.BadRequest("Choose a kid.");
+
                 ev.Id = 0;
                 db.scheduleEvents.Add(ev);
                 await db.SaveChangesAsync();
@@ -208,6 +220,9 @@ namespace FinalProjApp.Web.Api
             {
                 var ev = await db.scheduleEvents.FindAsync(id);
                 if (ev == null) return Results.NotFound();
+                if (!await db.children.AnyAsync(c => c.ChildId == changes.ChildId))
+                    return Results.BadRequest("Choose a kid.");
+
                 changes.Id = id;
                 db.Entry(ev).CurrentValues.SetValues(changes);
                 await db.SaveChangesAsync();

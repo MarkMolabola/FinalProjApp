@@ -30,6 +30,7 @@ namespace FinalProjApp.Models
         public DateTime EndTime { get; set; } = DateTime.Now.AddHours(1);
         public bool IsAllDay { get; set; } = false;
 
+        [Range(1, int.MaxValue, ErrorMessage = "Choose a kid.")]
         public int ChildId { get; set; }
     }
 }

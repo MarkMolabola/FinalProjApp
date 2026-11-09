@@ -36,7 +36,7 @@ namespace FinalProjApp
             builder.Services.AddScoped<IScheduleRequestService, ApiScheduleRequestService>();
 
             builder.Services.AddAuthorizationCore();
-            builder.Services.AddScoped<CustomAuthStateProvider>();
+            builder.Services.AddScoped<CustomAuthStateProvider, PhoneAuthStateProvider>();
             builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
                 sp.GetRequiredService<CustomAuthStateProvider>());
             builder.Services.AddScoped<IAuthService, MauiAuthService>();

@@ -4,8 +4,7 @@ using System.Net.Http.Json;
 namespace FinalProjApp.Services.Api
 {
     /// <summary>
-    /// Talks to FinalProjApp.Web's /api. Holds the sign-in token for the life of the
-    /// app (signing out, or restarting the app, clears it, as before).
+    /// Talks to FinalProjApp.Web's /api and holds the signed-in user's token.
     /// </summary>
     public class ApiClient
     {

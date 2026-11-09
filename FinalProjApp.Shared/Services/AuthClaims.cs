@@ -8,6 +8,7 @@ namespace FinalProjApp.Services
     {
         public const string UserIdClaim = "UserId";
         public const string GuardianIdClaim = "GuardianId";
+        public const string TooManyAttemptsMessage = "Too many sign-in attempts. Please wait 15 minutes and try again.";
 
         public static ClaimsPrincipal CreatePrincipal(AppUser user, string authenticationType)
         {

@@ -8,8 +8,8 @@ namespace FinalProjApp.Services
 {
     /// <summary>
     /// Phone app sign-in: the web app checks the password and returns a token, which
-    /// every API call then carries. The user is kept in memory
-    /// (<see cref="CustomAuthStateProvider"/>) for as long as the app runs.
+    /// every API call then carries. <see cref="SavedSignIn"/> keeps them signed in
+    /// across app launches until the token expires or they sign out.
     /// </summary>
     public class MauiAuthService : IAuthService
     {
@@ -36,11 +36,13 @@ namespace FinalProjApp.Services
                 return "Can't reach Caly Bear right now. Check your connection and try again.";
             }
 
+            if (response.StatusCode == HttpStatusCode.TooManyRequests) return AuthClaims.TooManyAttemptsMessage;
             if (response.StatusCode == HttpStatusCode.Unauthorized) return "That email and password don't match.";
             if (!response.IsSuccessStatusCode) return "Something went wrong signing in. Please try again.";
 
             var login = (await response.Content.ReadFromJsonAsync<LoginResponse>())!;
             _api.Token = login.Token;
+            await SavedSignIn.SaveAsync(login);
             _authState.NotifyUserLoggedIn(new AppUser
             {
                 UserId = login.UserId,
@@ -57,6 +59,7 @@ namespace FinalProjApp.Services
         public Task SignOutAsync()
         {
             _api.Token = null;
+            SavedSignIn.Clear();
             _authState.NotifyUserLoggedOut();
             _nav.NavigateTo("/login");
             return Task.CompletedTask;

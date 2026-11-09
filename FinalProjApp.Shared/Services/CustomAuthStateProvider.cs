@@ -5,8 +5,7 @@ using System.Security.Claims;
 namespace FinalProjApp.Services
 {
     /// <summary>
-    /// The phone app's sign-in state: the user lives in memory for as long as the
-    /// app runs. (The web app uses its cookie instead.)
+    /// The phone app's sign-in state. (The web app uses its cookie instead.)
     /// </summary>
     public class CustomAuthStateProvider : AuthenticationStateProvider
     {
@@ -17,9 +16,11 @@ namespace FinalProjApp.Services
 
         public void NotifyUserLoggedIn(AppUser user)
         {
-            _currentUser = AuthClaims.CreatePrincipal(user, "CustomAuth");
+            SetCurrentUser(user);
             NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
         }
+
+        protected void SetCurrentUser(AppUser user) => _currentUser = AuthClaims.CreatePrincipal(user, "CustomAuth");
 
         public void NotifyUserLoggedOut()
         {
