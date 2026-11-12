@@ -37,6 +37,7 @@ builder.Services.AddScoped<ICRUD<ScheduleEvent>, ScheduleEventCRUD>();
 builder.Services.AddScoped<IPhotoService, PhotoService>();
 builder.Services.AddScoped<IFamilyService, FamilyService>();
 builder.Services.AddScoped<IScheduleRequestService, ScheduleRequestService>();
+builder.Services.AddScoped<IContactService, ContactService>();
 builder.Services.AddScoped<IInviteService, InviteService>();
 builder.Services.AddHttpContextAccessor();
 

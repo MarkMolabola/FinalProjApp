@@ -2,6 +2,7 @@
 @inject AuthenticationStateProvider AuthState
 @inject NavigationManager Navigation
 @inject IScheduleRequestService Requests
+@inject IContactService Contact
 
 <nav class="bottom-nav">
     <NavLink class="bottom-nav-item" href="" Match="NavLinkMatch.All">
@@ -52,16 +53,22 @@
     <NavLink class="bottom-nav-item" href="/contact">
         <i class="bi bi-chat-heart-fill"></i>
         <span>Contact</span>
+        @if (_openMessages > 0)
+        {
+            <span class="nav-badge" aria-label="@(_openMessages == 1 ? "1 message to reply to" : $"{_openMessages} messages to reply to")">@(_openMessages > 9 ? "9+" : _openMessages)</span>
+        }
     </NavLink>
 </nav>
 
 @code {
     private int _pendingRequests;
+    private int _openMessages;
 
     protected override async Task OnInitializedAsync()
     {
         Navigation.LocationChanged += OnLocationChanged;
         Requests.Reviewed += OnReviewed;
+        Contact.Changed += OnReviewed;
         await RefreshCountAsync();
     }
 
@@ -74,7 +81,9 @@
         var user = (await AuthState.GetAuthenticationStateAsync()).User.ToAppUser();
         try
         {
-            _pendingRequests = user?.Role == "Admin" ? await Requests.CountPendingAsync(user) : 0;
+            var isAdmin = user?.Role == "Admin";
+            _pendingRequests = isAdmin ? await Requests.CountPendingAsync(user!) : 0;
+            _openMessages = isAdmin ? await Contact.CountOpenAsync(user!) : 0;
         }
         catch (HttpRequestException)
         {
@@ -87,5 +96,6 @@
     {
         Navigation.LocationChanged -= OnLocationChanged;
         Requests.Reviewed -= OnReviewed;
+        Contact.Changed -= OnReviewed;
     }
 }

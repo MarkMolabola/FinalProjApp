@@ -545,6 +545,9 @@ a, .btn-link { color: var(--coral-dark); }
 
 .photo-item:hover { transform: scale(1.02) rotate(-0.5deg); }
 
+/* A contact message keeps the sender's line breaks */
+.contact-text { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--ink-soft); font-weight: 600; }
+
 /* The Frenchie, sized like the emoji or text around it */
 .brand-face { width: 1em; height: 1em; vertical-align: -0.12em; }
 

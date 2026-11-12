@@ -1,0 +1,112 @@
+@using FinalProjApp.Models
+@using FinalProjApp.Services
+@inject AuthenticationStateProvider AuthState
+@inject IContactService Contact
+
+<div class="soft-card mb-3">
+    <div class="card-title-row">
+        <h3>Messages</h3>
+        <span class="pill @(OpenCount > 0 ? "tint-sun" : "tint-mint")">@(OpenCount == 0 ? "All caught up" : $"{OpenCount} to reply to")</span>
+    </div>
+
+    @if (_message != null)
+    {
+        <div class="alert alert-danger">@_message</div>
+    }
+
+    <div class="form-check mb-2">
+        <input type="checkbox" class="form-check-input" id="showHandled" @bind="_showHandled" />
+        <label class="form-check-label" for="showHandled">Show handled messages</label>
+    </div>
+
+    @if (!Visible.Any())
+    {
+        <div class="empty-state py-3">
+            @(_messages.Any() ? "Nothing left to reply to." : "No messages yet. They'll show up here when someone uses the form.")
+        </div>
+    }
+    else
+    {
+        <div class="list-stack">
+            @foreach (var m in Visible)
+            {
+                <div class="list-row flex-wrap @(m.IsHandled ? "opacity-75" : "")" @key="m.Id">
+                    <div class="grow">
+                        <div class="title">@m.Name</div>
+                        <div class="sub">
+                            <a href="mailto:@m.Email">@m.Email</a> · @Ago(m.CreatedUtc)
+                        </div>
+                    </div>
+                    @if (m.IsHandled)
+                    {
+                        <span class="pill tint-mint"><i class="bi bi-check-lg"></i> Handled</span>
+                    }
+                    <div class="w-100 mt-2 contact-text">@m.Message</div>
+                    <div class="w-100 d-flex gap-2 mt-2">
+                        <a class="btn btn-secondary btn-sm" href="mailto:@m.Email?subject=@Uri.EscapeDataString("Re: your message to Caly Bear")">
+                            <i class="bi bi-reply-fill me-1"></i>Reply by email
+                        </a>
+                        <button type="button" class="btn btn-sm @(m.IsHandled ? "btn-secondary" : "btn-primary")" disabled="@_busy" @onclick="() => ToggleAsync(m)">
+                            @(m.IsHandled ? "Mark as not handled" : "Mark handled")
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<ContactMessage> _messages = new();
+    private AppUser? _user;
+    private bool _showHandled, _busy;
+    private string? _message;
+
+    private IEnumerable<ContactMessage> Visible => _showHandled ? _messages : _messages.Where(m => !m.IsHandled);
+    private int OpenCount => _messages.Count(m => !m.IsHandled);
+
+    protected override async Task OnInitializedAsync()
+    {
+        _user = (await AuthState.GetAuthenticationStateAsync()).User.ToAppUser();
+        if (_user == null) return;
+
+        try
+        {
+            _messages = await Contact.GetAsync(_user);
+        }
+        catch (HttpRequestException)
+        {
+            _message = "Can't reach Caly Bear right now. Please try again.";
+        }
+    }
+
+    private async Task ToggleAsync(ContactMessage m)
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            await Contact.SetHandledAsync(_user!, m.Id, !m.IsHandled);
+            m.IsHandled = !m.IsHandled;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or InvalidOperationException)
+        {
+            _message = "That change couldn't be saved. Please try again.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    /// <summary>"Just now", "5 min ago", "3 hr ago", then the date. Works whatever time zone the server is in.</summary>
+    private static string Ago(DateTime createdUtc)
+    {
+        var age = DateTime.UtcNow - createdUtc;
+        return age.TotalMinutes < 1 ? "just now"
+            : age.TotalHours < 1 ? $"{(int)age.TotalMinutes} min ago"
+            : age.TotalDays < 1 ? $"{(int)age.TotalHours} hr ago"
+            : age.TotalDays < 7 ? $"{(int)age.TotalDays} days ago"
+            : createdUtc.ToString("MMM d, yyyy");
+    }
+}

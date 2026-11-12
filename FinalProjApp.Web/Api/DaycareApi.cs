@@ -45,6 +45,7 @@ namespace FinalProjApp.Web.Api
             MapFamily(api.MapGroup("/family").RequireAuthorization(StaffOnly));
             MapInvites(api.MapGroup("/invites"));
             MapScheduleRequests(api.MapGroup("/schedule-requests"));
+            MapContact(api.MapGroup("/contact"));
         }
 
         // ── Kids page: kids + guardians + invites (staff only) ───────────────
@@ -237,6 +238,33 @@ namespace FinalProjApp.Web.Api
                 await db.SaveChangesAsync();
                 return Results.NoContent();
             }).RequireAuthorization(StaffOnly);
+        }
+
+        // ── Contact page: anyone can send, only the admin reads ─────────────
+
+        private static void MapContact(RouteGroupBuilder contact)
+        {
+            contact.MapPost("/", async (ContactForm form, IContactService service) =>
+            {
+                try
+                {
+                    await service.SendAsync(form);
+                    return Results.NoContent();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return Results.Conflict(ex.Message);
+                }
+            });
+
+            contact.MapGet("/", (ClaimsPrincipal user, IContactService service) =>
+                service.GetAsync(user.ToAppUser()!)).RequireAuthorization(AdminOnly);
+
+            contact.MapPut("/{id:int}/handled", async (int id, bool handled, ClaimsPrincipal user, IContactService service) =>
+            {
+                await service.SetHandledAsync(user.ToAppUser()!, id, handled);
+                return Results.NoContent();
+            }).RequireAuthorization(AdminOnly);
         }
 
         // ── Schedule requests: parents ask, the admin confirms or declines ───

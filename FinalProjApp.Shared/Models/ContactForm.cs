@@ -1,21 +1,20 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace FinalProjApp.Models
 {
     public class ContactForm
     {
-        [Required]
+        public const int MaxNameLength = 100;
+        public const int MaxEmailLength = 256;
+        public const int MaxMessageLength = 2000;
+
+        [Required, MaxLength(MaxNameLength)]
         public string Name { get; set; } = "";
 
-        [Required, EmailAddress]
+        [Required, EmailAddress, MaxLength(MaxEmailLength)]
         public string Email { get; set; } = "";
 
-        [Required]
+        [Required, MaxLength(MaxMessageLength, ErrorMessage = "Keep your message under 2000 characters.")]
         public string Message { get; set; } = "";
     }
 }

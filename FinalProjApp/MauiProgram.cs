@@ -34,6 +34,7 @@ namespace FinalProjApp
             builder.Services.AddScoped<IFamilyService, ApiFamilyService>();
             builder.Services.AddScoped<IInviteService, ApiInviteService>();
             builder.Services.AddScoped<IScheduleRequestService, ApiScheduleRequestService>();
+            builder.Services.AddScoped<IContactService, ApiContactService>();
 
             builder.Services.AddAuthorizationCore();
             builder.Services.AddScoped<CustomAuthStateProvider, PhoneAuthStateProvider>();

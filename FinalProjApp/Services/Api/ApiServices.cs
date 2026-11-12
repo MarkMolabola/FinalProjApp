@@ -152,6 +152,29 @@ namespace FinalProjApp.Services.Api
         }
     }
 
+    /// <summary>Contact page messages, through the web app's API.</summary>
+    public class ApiContactService : IContactService
+    {
+        private readonly ApiClient _api;
+        public ApiContactService(ApiClient api) => _api = api;
+
+        public event Action? Changed;
+
+        public async Task SendAsync(ContactForm form) =>
+            await ApiFamilyService.EnsureOkAsync(await _api.PostAsync("api/contact", form));
+
+        public Task<List<ContactMessage>> GetAsync(AppUser admin) =>
+            _api.GetAsync<List<ContactMessage>>("api/contact");
+
+        public async Task<int> CountOpenAsync(AppUser admin) => (await GetAsync(admin)).Count(m => !m.IsHandled);
+
+        public async Task SetHandledAsync(AppUser admin, int messageId, bool handled)
+        {
+            await _api.SendAsync(HttpMethod.Put, $"api/contact/{messageId}/handled?handled={handled}", new { });
+            Changed?.Invoke();
+        }
+    }
+
     public class ApiInviteService : IInviteService
     {
         private readonly ApiClient _api;
